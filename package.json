@@ -1,6 +1,6 @@
 {
   "name": "react-native-marquee-animation",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Production-grade generic native marquee for React Native",
   "main": "./lib/module/index.js",
   "react-native": "./src/index.ts",
@@ -39,7 +39,7 @@
   ],
   "scripts": {
     "example": "bun --filter react-native-marquee-example",
-    "build": "bob build",
+    "build": "bob build && node scripts/fix-module-imports.mjs",
     "clean": "del-cli lib",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -47,8 +47,9 @@
     "test": "bun test",
     "test:android": "cd example/android && ./gradlew :react-native-marquee-animation:testDebugUnitTest",
     "typecheck": "tsc --noEmit",
+    "verify:module-imports": "node scripts/verify-module-imports.mjs",
     "lint": "eslint \"**/*.{js,mjs,ts,tsx}\"",
-    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run build",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test && bun run build && bun run verify:module-imports",
     "release": "release-it",
     "release:next": "release-it --preRelease=next"
   },
