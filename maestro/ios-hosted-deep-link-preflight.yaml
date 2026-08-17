@@ -1,22 +1,9 @@
 appId: com.invivek26.marqueeexample
-name: iOS hosted deep-link preflight
+name: iOS hosted launch preflight
 ---
 - launchApp:
     clearState: true
 - extendedWaitUntil:
     visible:
       id: showcase-screen
-    timeout: 15000
-- openLink: marquee-example://benchmark?scenario=active&count=1&durationSeconds=10
-- extendedWaitUntil:
-    visible: Open
-    timeout: 15000
-- tapOn: Open
-- extendedWaitUntil:
-    visible:
-      id: benchmark-screen
-    timeout: 15000
-- extendedWaitUntil:
-    visible:
-      id: benchmark-marquee-0
     timeout: 15000

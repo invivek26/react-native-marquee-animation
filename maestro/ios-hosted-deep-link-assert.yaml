@@ -1,0 +1,11 @@
+appId: com.invivek26.marqueeexample
+name: iOS hosted deep-link assertion
+---
+- extendedWaitUntil:
+    visible:
+      id: benchmark-screen
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: benchmark-marquee-0
+    timeout: 15000
