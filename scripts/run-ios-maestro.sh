@@ -4,8 +4,17 @@ set -euo pipefail
 : "${SIMULATOR_UDID:?SIMULATOR_UDID is required}"
 : "${RUNNER_TEMP:?RUNNER_TEMP is required}"
 
+maestro() {
+  ~/.maestro/bin/maestro --device "${SIMULATOR_UDID}" test "$1" \
+    2>&1 | tee -a "${RUNNER_TEMP}/maestro-ios.log"
+}
+
+maestro maestro/ios-hosted-deep-link-preflight.yaml
+xcrun simctl openurl "${SIMULATOR_UDID}" \
+  'marquee-example://benchmark?scenario=active&count=1&durationSeconds=10'
+maestro maestro/ios-hosted-deep-link-assert.yaml
+
 flows=(
-  maestro/ios-hosted-deep-link-preflight.yaml
   maestro/ios-showcase.yaml
   maestro/ios-smoke.yaml
   maestro/ios-lifecycle.yaml
@@ -15,6 +24,5 @@ flows=(
 )
 
 for flow in "${flows[@]}"; do
-  ~/.maestro/bin/maestro --device "${SIMULATOR_UDID}" test "$flow" \
-    2>&1 | tee -a "${RUNNER_TEMP}/maestro-ios.log"
+  maestro "$flow"
 done
