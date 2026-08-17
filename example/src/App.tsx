@@ -2,8 +2,34 @@ import { useCallback, useEffect, useState } from 'react';
 import * as Linking from 'expo-linking';
 
 import { ReliabilityLab } from './reliability-lab';
-import { parseBenchmarkRoute, type BenchmarkRoute } from './scenario';
-import { ShowcaseScreen } from './showcase-screen';
+import {
+  DEFAULT_BENCHMARK_ROUTE,
+  parseBenchmarkRoute,
+  type BenchmarkRoute,
+} from './scenario';
+import { ShowcaseScreen, type LabPreset } from './showcase-screen';
+
+const LAB_ROUTES: Readonly<Record<LabPreset, BenchmarkRoute>> = {
+  active: DEFAULT_BENCHMARK_ROUTE,
+  gesture: {
+    ...DEFAULT_BENCHMARK_ROUTE,
+    count: 1,
+    durationSeconds: 15,
+    scenario: 'gesture',
+  },
+  static: {
+    ...DEFAULT_BENCHMARK_ROUTE,
+    count: 1,
+    durationSeconds: 10,
+    scenario: 'static',
+  },
+  stress: {
+    ...DEFAULT_BENCHMARK_ROUTE,
+    count: 100,
+    durationSeconds: 8,
+    scenario: 'stress',
+  },
+};
 
 export const App = () => {
   const [labVisible, setLabVisible] = useState(false);
@@ -43,14 +69,10 @@ export const App = () => {
 
   return (
     <ShowcaseScreen
-      onOpenLab={
-        __DEV__
-          ? () => {
-              setInitialRoute(undefined);
-              setLabVisible(true);
-            }
-          : undefined
-      }
+      onOpenLab={(preset) => {
+        setInitialRoute(LAB_ROUTES[preset]);
+        setLabVisible(true);
+      }}
     />
   );
 };

@@ -35,4 +35,17 @@ final class MarqueeMathTests: XCTestCase {
     XCTAssertEqual(MarqueeMath.blendedVelocity(from: 100, to: -25, progress: 0.5), 37.5)
     XCTAssertEqual(MarqueeMath.blendedVelocity(from: 100, to: -25, progress: 1), -25)
   }
+
+  func testInteractiveFrameElapsedClampsToCurrentDisplayInterval() {
+    XCTAssertEqual(
+      MarqueeMath.clampedFrameElapsed(elapsed: 0.1, frameInterval: 1 / 60),
+      1.25 / 60,
+      accuracy: 0.000_001
+    )
+    XCTAssertEqual(
+      MarqueeMath.clampedFrameElapsed(elapsed: 0.1, frameInterval: 1 / 120),
+      1.25 / 120,
+      accuracy: 0.000_001
+    )
+  }
 }

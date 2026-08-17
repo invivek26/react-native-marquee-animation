@@ -21,12 +21,24 @@ const SHOWCASE_INTERACTION = {
   resumeDelay: 0,
 } as const;
 const MARKET_VALUES = ['+0.82%', '+1.14%', '+0.67%', '+1.32%'] as const;
+const LAB_PRESETS = [
+  { id: 'active', label: 'Open reliability lab', testID: 'open-lab-button' },
+  { id: 'static', label: 'Open static lab', testID: 'open-static-lab-button' },
+  {
+    id: 'gesture',
+    label: 'Open gesture lab',
+    testID: 'open-gesture-lab-button',
+  },
+  { id: 'stress', label: 'Open stress lab', testID: 'open-stress-lab-button' },
+] as const;
 
 const ARTWORK_TEXTURE =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjYPj/HwADAgH/5ncLrgAAAABJRU5ErkJggg==';
 
+export type LabPreset = (typeof LAB_PRESETS)[number]['id'];
+
 type ShowcaseScreenProps = Readonly<{
-  onOpenLab?: () => void;
+  onOpenLab?: (preset: LabPreset) => void;
 }>;
 
 type ContentPillProps = Readonly<{
@@ -317,17 +329,22 @@ export const ShowcaseScreen = ({ onOpenLab }: ShowcaseScreenProps) => {
         </View>
 
         {onOpenLab ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onOpenLab}
-            style={({ pressed }) => [
-              styles.labButton,
-              pressed ? styles.labButtonPressed : null,
-            ]}
-            testID="open-lab-button"
-          >
-            <Text style={styles.labButtonText}>Open reliability lab</Text>
-          </Pressable>
+          <View style={styles.labButtons}>
+            {LAB_PRESETS.map((preset) => (
+              <Pressable
+                accessibilityRole="button"
+                key={preset.id}
+                onPress={() => onOpenLab(preset.id)}
+                style={({ pressed }) => [
+                  styles.labButton,
+                  pressed ? styles.labButtonPressed : null,
+                ]}
+                testID={preset.testID}
+              >
+                <Text style={styles.labButtonText}>{preset.label}</Text>
+              </Pressable>
+            ))}
+          </View>
         ) : null}
       </ScrollView>
     </View>
@@ -477,6 +494,7 @@ const styles = StyleSheet.create({
   },
   labButtonPressed: { opacity: 0.7 },
   labButtonText: { color: '#91aa9f', fontSize: 12, fontWeight: '800' },
+  labButtons: { gap: 8 },
   liveBadge: {
     alignItems: 'center',
     borderColor: '#28483b',

@@ -84,7 +84,10 @@ internal class MarqueeMotion {
     lastFrameNanos = 0L
   }
 
-  fun advance(frameTimeNanos: Long): Boolean {
+  fun advance(
+    frameTimeNanos: Long,
+    maximumDeltaSeconds: Double = DEFAULT_MAX_FRAME_DELTA_SECONDS,
+  ): Boolean {
     crossedLoopBoundary = false
     if (mode != Mode.AUTO && mode != Mode.FLING && mode != Mode.BLEND) {
       lastFrameNanos = frameTimeNanos
@@ -95,8 +98,10 @@ internal class MarqueeMotion {
       return true
     }
 
+    val safeMaximumDelta = maximumDeltaSeconds.takeIf { it.isFinite() && it > 0.0 }
+      ?: DEFAULT_MAX_FRAME_DELTA_SECONDS
     val deltaSeconds = ((frameTimeNanos - lastFrameNanos).coerceAtLeast(0L) / NANOS_PER_SECOND)
-      .coerceAtMost(MAX_FRAME_DELTA_SECONDS)
+      .coerceAtMost(safeMaximumDelta)
     lastFrameNanos = frameTimeNanos
     val velocity = when (mode) {
       Mode.FLING -> flingVelocityPxPerSecond
@@ -154,7 +159,7 @@ internal class MarqueeMotion {
 
   private companion object {
     const val NANOS_PER_SECOND = 1_000_000_000.0
-    const val MAX_FRAME_DELTA_SECONDS = 0.05
+    const val DEFAULT_MAX_FRAME_DELTA_SECONDS = 0.05
     const val MILLIS_PER_SECOND = 1_000.0
     const val DEFAULT_DECELERATION = 0.9985
     const val AUTO_BLEND_DURATION_SECONDS = 0.35

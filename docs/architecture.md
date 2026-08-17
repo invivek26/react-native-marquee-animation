@@ -43,8 +43,8 @@ generation.
 The Objective-C++ Fabric shell forwards generated props/events and mounts the
 single Fabric child directly into `MarqueeRenderer`. The Swift renderer is
 backed by `CAReplicatorLayer`; automatic motion is an infinite linear transform
-animation. `CADisplayLink` exists only during gesture inertia and the short
-velocity blend back to compositor-driven motion.
+animation. A screen-rate-aware `CADisplayLink` coalesces drag updates and drives
+gesture inertia plus the short velocity blend back to compositor-driven motion.
 
 ## Android
 
@@ -53,6 +53,9 @@ The Kotlin Fabric manager owns a custom `ViewGroup` containing one child.
 cover the viewport and seam. Existing RenderNode/display-list caching remains
 owned by the Android rendering pipeline. `Choreographer` updates a `Double`
 phase from monotonic time with no per-frame allocations or JavaScript work.
+Elapsed motion is capped to approximately one current display interval so a
+missed callback reads as a brief hold instead of a catch-up jump. API 35+
+requests the high frame-rate category only while frame callbacks are active.
 
 ## Unsupported surfaces
 
@@ -66,6 +69,8 @@ visual replica is not another logical view.
 
 The host is one accessibility element with an explicit consumer-provided label;
 the child container and every visual replica are hidden. Reduce Motion,
-inactive state, detach, backgrounding, recycle, and offscreen visibility stop
-all continuous animation work. Recycling clears callbacks, gestures, content
-measurements, and event listeners before Fabric reuses a native view.
+`active={false}`, detach, backgrounding, and recycle stop all continuous
+animation work. A window-attached view cannot infer application-level
+visibility or occlusion, so `active` remains the authoritative control.
+Recycling clears callbacks, gestures, content measurements, and event listeners
+before Fabric reuses a native view.

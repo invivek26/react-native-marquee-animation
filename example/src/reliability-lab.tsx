@@ -43,7 +43,11 @@ type LabState = Readonly<{
 }>;
 
 type LabAction =
-  | Readonly<{ route: BenchmarkRoute; type: 'route' }>
+  | Readonly<{
+      route: BenchmarkRoute;
+      type: 'route';
+      updateMode?: UpdateMode;
+    }>
   | Readonly<{ type: 'pause' }>
   | Readonly<{
       reduceMotion: MarqueeReduceMotion;
@@ -85,10 +89,7 @@ const labReducer = (state: LabState, action: LabAction): LabState => {
       activeOverride: null,
       route: action.route,
       tick: 0,
-      updateMode:
-        action.route.scenario === 'updates'
-          ? 'high-frequency'
-          : state.updateMode,
+      updateMode: action.updateMode ?? state.updateMode,
     };
   }
 
@@ -184,7 +185,7 @@ type ScenarioControlsProps = Readonly<{
   onUpdateModeChange: (updateMode: UpdateMode) => void;
 }>;
 
-const ScenarioControls = ({
+const ScenarioControls = memo(function ScenarioControlsView({
   onCountChange,
   onPause,
   onReduceMotionChange,
@@ -195,95 +196,152 @@ const ScenarioControls = ({
   reduceMotion,
   route,
   updateMode,
-}: ScenarioControlsProps) => (
-  <View style={styles.controls} testID="controls">
-    <Text style={styles.sectionLabel}>SCENARIO</Text>
-    <View style={styles.buttonRow}>
-      {BENCHMARK_SCENARIOS.slice(0, 4).map((scenario) => (
+}: ScenarioControlsProps) {
+  return (
+    <View style={styles.controls} testID="controls">
+      <Text style={styles.sectionLabel}>SCENARIO</Text>
+      <View style={styles.buttonRow}>
+        {BENCHMARK_SCENARIOS.slice(0, 2).map((scenario) => (
+          <ControlButton
+            active={route.scenario === scenario}
+            key={scenario}
+            label={scenario}
+            onPress={() => onScenarioChange(scenario)}
+            testID={`scenario-${scenario}-button`}
+          />
+        ))}
+      </View>
+      <View style={styles.buttonRow}>
+        {BENCHMARK_SCENARIOS.slice(2, 4).map((scenario) => (
+          <ControlButton
+            active={route.scenario === scenario}
+            key={scenario}
+            label={scenario}
+            onPress={() => onScenarioChange(scenario)}
+            testID={`scenario-${scenario}-button`}
+          />
+        ))}
+      </View>
+      <View style={styles.buttonRow}>
         <ControlButton
-          active={route.scenario === scenario}
-          key={scenario}
-          label={scenario}
-          onPress={() => onScenarioChange(scenario)}
-          testID={`scenario-${scenario}-button`}
+          active={route.scenario === 'gesture'}
+          key="gesture"
+          label="gesture"
+          onPress={() => onScenarioChange('gesture')}
+          testID="scenario-gesture-button"
         />
-      ))}
-    </View>
-    <View style={styles.buttonRow}>
-      <ControlButton
-        active={route.scenario === 'stress'}
-        label="stress"
-        onPress={() => onScenarioChange('stress')}
-        testID="scenario-stress-button"
-      />
-    </View>
-
-    <Text style={styles.sectionLabel}>REDUCE MOTION</Text>
-    <View style={styles.buttonRow}>
-      <ControlButton
-        active={reduceMotion === 'system'}
-        label="system"
-        onPress={() => onReduceMotionChange('system')}
-        testID="reduce-motion-system-button"
-      />
-      <ControlButton
-        active={reduceMotion === 'always'}
-        label="always"
-        onPress={() => onReduceMotionChange('always')}
-        testID="reduce-motion-always-button"
-      />
-      <ControlButton
-        active={reduceMotion === 'never'}
-        label="never"
-        onPress={() => onReduceMotionChange('never')}
-        testID="reduce-motion-never-button"
-      />
-    </View>
-
-    <Text style={styles.sectionLabel}>SIMULTANEOUS VIEWS</Text>
-    <View style={styles.buttonRow}>
-      {STRESS_COUNTS.map((count) => (
         <ControlButton
-          active={route.count === count}
-          key={count}
-          label={String(count)}
-          onPress={() => onCountChange(count)}
-          testID={`stress-count-${count}-button`}
+          active={route.scenario === 'stress'}
+          key="stress"
+          label="stress"
+          onPress={() => onScenarioChange('stress')}
+          testID="scenario-stress-button"
         />
-      ))}
-    </View>
+      </View>
 
-    <Text style={styles.sectionLabel}>UPDATE SHAPE</Text>
-    <View style={styles.buttonRow}>
-      <ControlButton
-        active={updateMode === 'same-width'}
-        label="same width"
-        onPress={() => onUpdateModeChange('same-width')}
-        testID="update-mode-same-width"
-      />
-      <ControlButton
-        active={updateMode === 'width-changing'}
-        label="width changing"
-        onPress={() => onUpdateModeChange('width-changing')}
-        testID="update-mode-width-changing"
-      />
-    </View>
-    <View style={styles.buttonRow}>
-      <ControlButton
-        active={updateMode === 'high-frequency'}
-        label="20 Hz"
-        onPress={() => onUpdateModeChange('high-frequency')}
-        testID="update-mode-high-frequency"
-      />
-    </View>
+      <Text style={styles.sectionLabel}>REDUCE MOTION</Text>
+      <View style={styles.buttonRow}>
+        <ControlButton
+          active={reduceMotion === 'system'}
+          key="system"
+          label="system"
+          onPress={() => onReduceMotionChange('system')}
+          testID="reduce-motion-system-button"
+        />
+        <ControlButton
+          active={reduceMotion === 'always'}
+          key="always"
+          label="always"
+          onPress={() => onReduceMotionChange('always')}
+          testID="reduce-motion-always-button"
+        />
+      </View>
+      <View style={styles.buttonRow}>
+        <ControlButton
+          active={reduceMotion === 'never'}
+          key="never"
+          label="never"
+          onPress={() => onReduceMotionChange('never')}
+          testID="reduce-motion-never-button"
+        />
+      </View>
 
-    <View style={styles.buttonRow}>
-      <ControlButton label="pause" onPress={onPause} testID="pause-button" />
-      <ControlButton label="resume" onPress={onResume} testID="resume-button" />
-      <ControlButton label="reset" onPress={onReset} testID="reset-button" />
+      <Text style={styles.sectionLabel}>SIMULTANEOUS VIEWS</Text>
+      <View style={styles.buttonRow}>
+        {STRESS_COUNTS.slice(0, 2).map((count) => (
+          <ControlButton
+            active={route.count === count}
+            key={count}
+            label={String(count)}
+            onPress={() => onCountChange(count)}
+            testID={`stress-count-${count}-button`}
+          />
+        ))}
+      </View>
+      <View style={styles.buttonRow}>
+        {STRESS_COUNTS.slice(2).map((count) => (
+          <ControlButton
+            active={route.count === count}
+            key={count}
+            label={String(count)}
+            onPress={() => onCountChange(count)}
+            testID={`stress-count-${count}-button`}
+          />
+        ))}
+      </View>
+
+      <Text style={styles.sectionLabel}>UPDATE SHAPE</Text>
+      <View style={styles.buttonRow}>
+        <ControlButton
+          active={updateMode === 'same-width'}
+          key="same-width"
+          label="same width"
+          onPress={() => onUpdateModeChange('same-width')}
+          testID="update-mode-same-width"
+        />
+        <ControlButton
+          active={updateMode === 'width-changing'}
+          key="width-changing"
+          label="width changing"
+          onPress={() => onUpdateModeChange('width-changing')}
+          testID="update-mode-width-changing"
+        />
+      </View>
+      <View style={styles.buttonRow}>
+        <ControlButton
+          active={updateMode === 'high-frequency'}
+          key="high-frequency"
+          label="20 Hz"
+          onPress={() => onUpdateModeChange('high-frequency')}
+          testID="update-mode-high-frequency"
+        />
+      </View>
+
+      <View style={styles.buttonRow}>
+        <ControlButton
+          key="pause"
+          label="pause"
+          onPress={onPause}
+          testID="pause-button"
+        />
+        <ControlButton
+          key="resume"
+          label="resume"
+          onPress={onResume}
+          testID="resume-button"
+        />
+      </View>
+      <View style={styles.buttonRow}>
+        <ControlButton
+          key="reset"
+          label="reset"
+          onPress={onReset}
+          testID="reset-button"
+        />
+      </View>
     </View>
-  </View>
-);
+  );
+});
 
 type MarqueeStackProps = Readonly<{
   active: boolean;
@@ -293,6 +351,7 @@ type MarqueeStackProps = Readonly<{
   onContentLayout: (contentWidth: number, containerWidth: number) => void;
   reduceMotion: MarqueeReduceMotion;
   scenario: BenchmarkScenario;
+  speed: number;
 }>;
 
 type SparkBarsProps = Readonly<{
@@ -365,6 +424,7 @@ const MarqueeStack = ({
   onContentLayout,
   reduceMotion,
   scenario,
+  speed,
 }: MarqueeStackProps) => {
   if (scenario === 'baseline') {
     return (
@@ -406,7 +466,7 @@ const MarqueeStack = ({
             reduceMotion={reduceMotion}
             shortContentMode="static"
             spacing={32}
-            speed={25}
+            speed={speed}
             style={MARQUEE_STYLE}
           >
             {(scenario === 'static' ? items.slice(0, 1) : items).map((item) => (
@@ -427,6 +487,10 @@ type ReliabilityLabProps = Readonly<{
 const initializeLabState = (initialRoute?: BenchmarkRoute): LabState => ({
   ...INITIAL_STATE,
   route: initialRoute ?? INITIAL_STATE.route,
+  updateMode:
+    initialRoute?.scenario === 'updates'
+      ? 'high-frequency'
+      : INITIAL_STATE.updateMode,
 });
 
 export const ReliabilityLab = ({
@@ -445,7 +509,11 @@ export const ReliabilityLab = ({
   const handleUrl = useCallback((url: string) => {
     const route = parseBenchmarkRoute(url);
     if (route) {
-      dispatch({ route, type: 'route' });
+      dispatch({
+        route,
+        type: 'route',
+        updateMode: route.scenario === 'updates' ? 'high-frequency' : undefined,
+      });
     }
   }, []);
 
@@ -521,6 +589,9 @@ export const ReliabilityLab = ({
     },
     []
   );
+  const handlePause = useCallback(() => dispatch({ type: 'pause' }), []);
+  const handleReset = useCallback(() => dispatch({ type: 'reset' }), []);
+  const handleResume = useCallback(() => dispatch({ type: 'resume' }), []);
   const handleAnimationStateChange = useCallback((nextState: string) => {
     setAnimationStatus(nextState);
   }, []);
@@ -570,6 +641,9 @@ export const ReliabilityLab = ({
             <Text style={styles.routeMeta} testID="benchmark-sparklines">
               graphs {state.route.sparklines ? 'on' : 'off'}
             </Text>
+            <Text style={styles.routeMeta} testID="benchmark-speed">
+              {state.route.speed} pt/s
+            </Text>
           </View>
         </View>
 
@@ -581,6 +655,7 @@ export const ReliabilityLab = ({
           onContentLayout={handleContentLayout}
           reduceMotion={state.reduceMotion}
           scenario={state.route.scenario}
+          speed={state.route.speed}
         />
 
         <View style={styles.telemetryCard}>
@@ -616,10 +691,10 @@ export const ReliabilityLab = ({
 
         <ScenarioControls
           onCountChange={handleCountChange}
-          onPause={() => dispatch({ type: 'pause' })}
+          onPause={handlePause}
           onReduceMotionChange={handleReduceMotionChange}
-          onReset={() => dispatch({ type: 'reset' })}
-          onResume={() => dispatch({ type: 'resume' })}
+          onReset={handleReset}
+          onResume={handleResume}
           onScenarioChange={handleScenarioChange}
           onUpdateModeChange={handleUpdateModeChange}
           reduceMotion={state.reduceMotion}
@@ -630,7 +705,7 @@ export const ReliabilityLab = ({
         <View style={styles.deepLinkCard} testID="benchmark-deep-link-help">
           <Text style={styles.sectionLabel}>AUTOMATION ROUTE</Text>
           <Text style={styles.code}>
-            marquee-example://benchmark?scenario=stress&amp;count=100&amp;durationSeconds=20
+            marquee-example://benchmark?scenario=updates&amp;count=1&amp;speed=50&amp;durationSeconds=20
           </Text>
         </View>
         <View testID="gallery-end" />
@@ -670,12 +745,14 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
   },
   controlButton: {
+    alignItems: 'center',
     backgroundColor: '#18382d',
     borderColor: '#2a5545',
     borderRadius: 999,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 9,
+    width: 140,
   },
   controlButtonActive: {
     backgroundColor: '#78edb3',

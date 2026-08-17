@@ -6,7 +6,7 @@ One React/Fabric tree is mounted regardless of how many copies are visible.
 iOS uses compositor replication and Android replays existing child display
 lists. Automatic motion has zero per-frame JavaScript and performs no React
 layout. When content fits, is paused, reduced-motion, detached, backgrounded,
-or offscreen, the renderer performs no continuous frame work.
+or has `active={false}`, the renderer performs no continuous frame work.
 
 ## Cost model
 
@@ -28,15 +28,15 @@ correctness contract.
 ## Acceptance protocol
 
 Use Release builds on representative physical 60 Hz and 120 Hz devices. Compare
-the archived optimized renderer at `stock-renderer-v1-backup` with the generic
-renderer using identical visual children, speed, update cadence, device state,
-and capture order. Report medians plus p95/p99 across at least five alternating
-runs.
+the current renderer with the recorded baseline using identical visual children,
+speed, update cadence, device state, and capture order. Report medians plus
+p95/p99 across at least five alternating runs.
 
 Required invariants include zero per-frame JavaScript, zero blank frames, no
 seam discontinuity, bounded memory after warm-up, no lifecycle leaks, and zero
-motion callbacks while stationary. Emulator and simulator measurements are
-diagnostic only.
+motion callbacks while stationary. At 25, 50, and 100 points/second, compare
+frozen `active` content against identical `updates` content to attribute churn.
+Emulator and simulator measurements are diagnostic only.
 
 ## Generic renderer diagnostic
 

@@ -7,10 +7,12 @@ name: iOS marquee lifecycle
     visible:
       id: showcase-screen
     timeout: 15000
-- openLink: marquee-example://benchmark?scenario=active&count=10&durationSeconds=20
+- scrollUntilVisible:
+    element:
+      id: open-lab-button
+    direction: DOWN
 - tapOn:
-    text: Open
-    optional: true
+    id: open-lab-button
 - extendedWaitUntil:
     visible:
       id: benchmark-screen

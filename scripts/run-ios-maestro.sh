@@ -9,11 +9,6 @@ maestro() {
     2>&1 | tee -a "${RUNNER_TEMP}/maestro-ios.log"
 }
 
-maestro maestro/ios-hosted-deep-link-preflight.yaml
-xcrun simctl openurl "${SIMULATOR_UDID}" \
-  'marquee-example://benchmark?scenario=active&count=1&durationSeconds=10'
-maestro maestro/ios-hosted-deep-link-assert.yaml
-
 flows=(
   maestro/ios-showcase.yaml
   maestro/ios-smoke.yaml

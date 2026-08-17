@@ -3,13 +3,13 @@
   "route": {
     "scheme": "marquee-example",
     "host": "benchmark",
-    "query": ["scenario", "count", "durationSeconds"]
+    "query": ["scenario", "count", "speed", "durationSeconds", "sparklines"]
   },
   "defaults": {
     "durationSeconds": 30,
     "counts": [1, 10, 30, 100],
-    "speedPointsPerSecond": 25,
-    "updateIntervalMs": 100
+    "speedPointsPerSecond": [25, 50, 100],
+    "updateIntervalMs": 50
   },
   "mixedContent": {
     "description": "A production-shaped arbitrary React Native child containing an image, nested text, a badge, and a composed chart.",
@@ -40,12 +40,12 @@
     "active": {
       "motion": true,
       "updates": false,
-      "description": "Production-shaped children moving continuously at 25 points per second."
+      "description": "Frozen production-shaped children moving continuously at the requested benchmark speed."
     },
     "updates": {
       "motion": true,
       "updates": true,
-      "description": "Alternates width-stable and width-changing values every 100 ms while moving."
+      "description": "Alternates width-stable and width-changing values every 50 ms at the requested benchmark speed."
     },
     "gesture": {
       "motion": true,

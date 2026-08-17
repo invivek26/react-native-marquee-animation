@@ -4,6 +4,74 @@ import XCTest
 
 @MainActor
 final class MarqueeRendererTests: XCTestCase {
+  func testPauseOnPressBeginsOnTouchDown() {
+    let renderer = MarqueeRenderer(frame: CGRect(x: 0, y: 0, width: 200, height: 64))
+
+    XCTAssertEqual(renderer.testingHoldMinimumPressDuration, 0)
+    XCTAssertFalse(renderer.testingHoldCancelsTouchesInView)
+  }
+
+  func testPauseOnPressFalseDisablesStationaryPressRecognizer() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    let config = configuration(contentWidth: 600)
+    config.pauseOnPress = false
+
+    renderer.applyConfiguration(config)
+
+    XCTAssertFalse(renderer.testingHoldEnabled)
+  }
+
+  func testDragUpdatesAreCoalescedUntilDisplayRefresh() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    renderer.applyConfiguration(configuration(contentWidth: 600))
+    renderer.testingSetOffset(-100)
+    renderer.testingBeginDrag()
+    let initialOffset = renderer.testingPhysicalOffset
+
+    renderer.testingQueueDrag(translation: 35)
+
+    XCTAssertEqual(renderer.testingPhysicalOffset, initialOffset, accuracy: 0.5)
+    renderer.testingStepDrag()
+    XCTAssertEqual(renderer.testingPhysicalOffset, initialOffset + 35, accuracy: 0.5)
+    renderer.resetForReuse()
+  }
+
+  func testDragEndFlushesFinalPositionBeforeInertia() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    renderer.applyConfiguration(configuration(contentWidth: 600))
+    renderer.testingSetOffset(-100)
+    renderer.testingBeginDrag()
+
+    renderer.testingEndDrag(translation: 60, velocity: 200)
+
+    XCTAssertEqual(renderer.testingPhysicalOffset, -40, accuracy: 0.5)
+    XCTAssertTrue(renderer.testingHasDisplayLink)
+    renderer.resetForReuse()
+  }
+
+  func testInteractiveDisplayLinkPrefersActiveScreenRefreshRate() {
+    let (window, renderer) = attachedRenderer(width: 200)
+    renderer.applyConfiguration(configuration(contentWidth: 600))
+
+    renderer.testingBeginInertia(200)
+
+    XCTAssertEqual(
+      renderer.testingDisplayLinkPreferredFrameRate,
+      Float(window.screen.maximumFramesPerSecond)
+    )
+    renderer.resetForReuse()
+  }
+
+  func testRecycleStopsInteractiveDisplayLink() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    renderer.applyConfiguration(configuration(contentWidth: 600))
+    renderer.testingBeginDrag()
+
+    renderer.resetForReuse()
+
+    XCTAssertFalse(renderer.testingHasDisplayLink)
+  }
+
   func testShortContentRemainsIdle() {
     let (_, renderer) = attachedRenderer(width: 320, contentWidth: 100)
     renderer.applyConfiguration(configuration(contentWidth: 100))

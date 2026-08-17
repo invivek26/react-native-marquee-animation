@@ -13,6 +13,7 @@ DEVICE_SERIAL="${ANDROID_SERIAL:-}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-$BENCHMARK_DIR/results/android}"
 CAPTURE_VIDEO="${CAPTURE_VIDEO:-1}"
 SPARKLINES="${SPARKLINES:-1}"
+SPEED="${SPEED:-25}"
 
 case "$SCENARIO" in
   baseline|static|active|updates|gesture|stress) ;;
@@ -22,6 +23,11 @@ esac
 case "$COUNT" in
   1|10|30|100) ;;
   *) echo "Count must be one of 1, 10, 30, 100" >&2; exit 2 ;;
+esac
+
+case "$SPEED" in
+  25|50|100) ;;
+  *) echo "Speed must be one of 25, 50, 100" >&2; exit 2 ;;
 esac
 
 command -v adb >/dev/null || { echo "adb is required" >&2; exit 1; }
@@ -35,7 +41,7 @@ TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_DIR="$OUTPUT_ROOT/$TIMESTAMP-$SCENARIO-$COUNT"
 mkdir -p "$RUN_DIR"
 
-URI="marquee-example://benchmark?scenario=$SCENARIO&count=$COUNT&durationSeconds=$DURATION_SECONDS&sparklines=$SPARKLINES"
+URI="marquee-example://benchmark?scenario=$SCENARIO&count=$COUNT&speed=$SPEED&durationSeconds=$DURATION_SECONDS&sparklines=$SPARKLINES"
 REMOTE_TRACE="/data/misc/perfetto-traces/marquee-animation-$TIMESTAMP.pftrace"
 REMOTE_VIDEO="/sdcard/marquee-animation-$TIMESTAMP.mp4"
 CONFIG_FILE="$(mktemp -t marquee-animation-perfetto.XXXXXX)"
@@ -120,6 +126,7 @@ cat > "$RUN_DIR/metadata.json" <<EOF
   "scenario": "$SCENARIO",
   "count": $COUNT,
   "sparklines": $SPARKLINES,
+  "speedPointsPerSecond": $SPEED,
   "durationSeconds": $DURATION_SECONDS,
   "package": "$APP_PACKAGE",
   "route": "$URI",

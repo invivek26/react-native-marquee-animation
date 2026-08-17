@@ -54,7 +54,7 @@ consumer's embedded custom font, high contrast, and 60/90/120 Hz hardware.
 The example exposes:
 
 ```text
-marquee-example://benchmark?scenario=<baseline|static|active|updates|gesture|stress>&count=<1|10|30|100>&durationSeconds=<n>&sparklines=<0|1>
+marquee-example://benchmark?scenario=<baseline|static|active|updates|gesture|stress>&count=<1|10|30|100>&speed=<25|50|100>&durationSeconds=<n>&sparklines=<0|1>
 ```
 
 The app identity is `com.invivek26.marqueeexample`, Android launches
