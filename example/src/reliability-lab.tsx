@@ -198,8 +198,8 @@ const ScenarioControls = ({
 }: ScenarioControlsProps) => (
   <View style={styles.controls} testID="controls">
     <Text style={styles.sectionLabel}>SCENARIO</Text>
-    <View style={styles.buttonWrap}>
-      {BENCHMARK_SCENARIOS.map((scenario) => (
+    <View style={styles.buttonRow}>
+      {BENCHMARK_SCENARIOS.slice(0, 4).map((scenario) => (
         <ControlButton
           active={route.scenario === scenario}
           key={scenario}
@@ -209,9 +209,17 @@ const ScenarioControls = ({
         />
       ))}
     </View>
+    <View style={styles.buttonRow}>
+      <ControlButton
+        active={route.scenario === 'stress'}
+        label="stress"
+        onPress={() => onScenarioChange('stress')}
+        testID="scenario-stress-button"
+      />
+    </View>
 
     <Text style={styles.sectionLabel}>REDUCE MOTION</Text>
-    <View style={styles.buttonWrap}>
+    <View style={styles.buttonRow}>
       <ControlButton
         active={reduceMotion === 'system'}
         label="system"
@@ -233,7 +241,7 @@ const ScenarioControls = ({
     </View>
 
     <Text style={styles.sectionLabel}>SIMULTANEOUS VIEWS</Text>
-    <View style={styles.buttonWrap}>
+    <View style={styles.buttonRow}>
       {STRESS_COUNTS.map((count) => (
         <ControlButton
           active={route.count === count}
@@ -246,7 +254,7 @@ const ScenarioControls = ({
     </View>
 
     <Text style={styles.sectionLabel}>UPDATE SHAPE</Text>
-    <View style={styles.buttonWrap}>
+    <View style={styles.buttonRow}>
       <ControlButton
         active={updateMode === 'same-width'}
         label="same width"
@@ -259,6 +267,8 @@ const ScenarioControls = ({
         onPress={() => onUpdateModeChange('width-changing')}
         testID="update-mode-width-changing"
       />
+    </View>
+    <View style={styles.buttonRow}>
       <ControlButton
         active={updateMode === 'high-frequency'}
         label="20 Hz"
@@ -267,7 +277,7 @@ const ScenarioControls = ({
       />
     </View>
 
-    <View style={styles.buttonWrap}>
+    <View style={styles.buttonRow}>
       <ControlButton label="pause" onPress={onPause} testID="pause-button" />
       <ControlButton label="resume" onPress={onResume} testID="resume-button" />
       <ControlButton label="reset" onPress={onReset} testID="reset-button" />
@@ -645,9 +655,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontSize: 13,
   },
-  buttonWrap: {
+  buttonRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
   code: {
