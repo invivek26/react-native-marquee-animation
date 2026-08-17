@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  merge_group:
+    types: [checks_requested]
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  library:
+    name: JS, types, tests, build, and Codegen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup
+
+      - name: Check formatting and lint
+        run: bun run format:check && bun run lint
+
+      - name: Check types
+        run: bun run typecheck
+
+      - name: Run JavaScript tests
+        run: bun test
+
+      - name: Build distributable files
+        run: bun run build
+
+      - name: Generate Android Fabric artifacts
+        run: >-
+          bun node_modules/react-native/scripts/generate-codegen-artifacts.js
+          --path .
+          --targetPlatform android
+          --outputPath "${RUNNER_TEMP}/codegen"
+
+      - name: Verify generated component bindings
+        run: >-
+          test -f
+          "${RUNNER_TEMP}/codegen/android/app/build/generated/source/codegen/jni/react/renderer/components/RNMarqueeViewSpec/ComponentDescriptors.h"
+
+  packed-consumer:
+    name: Packed tarball JS consumer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup
+
+      - name: Build and pack exact artifact
+        run: |
+          bun run build
+          archive=$(bun pm pack --ignore-scripts --destination "${RUNNER_TEMP}" --quiet | tail -n 1)
+          echo "PACKAGE_ARCHIVE=${archive}" >> "${GITHUB_ENV}"
+
+      - name: Verify package contents
+        run: ./scripts/verify-package-contents.sh "${PACKAGE_ARCHIVE}"
+
+      - name: Install in clean TypeScript consumer
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir typescript-consumer
+          cd typescript-consumer
+          bun init -y
+          bun add --exact "${PACKAGE_ARCHIVE}" react@19.2.3 react-native@0.85.3
+          bun -e "const pkg = require('./node_modules/react-native-marquee-animation/package.json'); if (!pkg.exports?.['.'] || pkg.codegenConfig?.name !== 'RNMarqueeViewSpec') process.exit(1)"
+          cat > index.ts <<'EOF'
+          import { Marquee } from 'react-native-marquee-animation';
+
+          void Marquee;
+          EOF
+          bunx tsc --noEmit --skipLibCheck --module preserve --moduleResolution bundler --target esnext index.ts

@@ -1,0 +1,33 @@
+.DS_Store
+.expo/
+.turbo/
+.build/
+.swiftpm/
+.idea/
+.vscode/
+node_modules/
+lib/
+*.tgz
+*.abi.json
+*.swiftdoc
+*.swiftmodule
+*.hprof
+*.swiftsourceinfo
+Package.resolved
+
+# Generated example projects and build output
+example/android/
+example/ios/
+example/dist/
+android/build/
+android/.gradle/
+android/local.properties
+ios/build/
+ios/Pods/
+DerivedData/
+xcuserdata/
+**/.xcode.env.local
+
+# Consumer-generated React Native Codegen output
+android/generated/
+ios/generated/

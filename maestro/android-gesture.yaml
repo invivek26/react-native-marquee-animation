@@ -1,0 +1,41 @@
+appId: com.invivek26.marqueeexample
+name: Android marquee gestures
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: showcase-screen
+    timeout: 15000
+- openLink: marquee-example://benchmark?scenario=gesture&count=1&durationSeconds=15
+- extendedWaitUntil:
+    visible:
+      id: benchmark-screen
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: benchmark-marquee-0
+    timeout: 15000
+- longPressOn:
+    id: benchmark-marquee-0
+- swipe:
+    start: 85%, 27%
+    end: 15%, 27%
+    duration: 800
+- swipe:
+    start: 20%, 27%
+    end: 80%, 27%
+    duration: 100
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: 85%, 27%
+          end: 15%, 27%
+          duration: 100
+      - swipe:
+          start: 15%, 27%
+          end: 85%, 27%
+          duration: 100
+- assertVisible:
+    id: benchmark-marquee-0

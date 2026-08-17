@@ -1,0 +1,26 @@
+{
+  "notes": [
+    "Thresholds are release-build gates on physical devices, not simulator/emulator gates.",
+    "The 100-count case measures virtualization and lifecycle cleanup; only visible rows may animate.",
+    "Compare on the same device, OS, refresh rate, thermal state, and build revision."
+  ],
+  "absolute": {
+    "jankyFramePercent": { "1": 1, "10": 2, "30": 3, "100": 5 },
+    "hitchTimeRatioPercent": { "1": 1, "10": 2, "30": 3, "100": 5 },
+    "p95FrameOverrunMs": 0,
+    "p99FrameOverrunMs": 8,
+    "blankFrames": 0,
+    "steadyStateAllocationsPerFrame": 0,
+    "jsAnimationCallbacksPerSecond": 0,
+    "stationaryNativeAnimationCallbacksPerSecond": 0,
+    "seamDiscontinuityRatio": 3
+  },
+  "relativeToBaseline": {
+    "stationaryCpuPercentPoints": 1,
+    "stationaryMemoryMbPerInstance": 0.5,
+    "activeCpuRegressionPercent": 10,
+    "peakMemoryRegressionPercent": 10,
+    "jankyFramePercentPoints": 0.5,
+    "hitchTimeRatioPercentPoints": 0.5
+  }
+}

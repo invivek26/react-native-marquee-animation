@@ -1,0 +1,58 @@
+buildscript {
+  ext.Marquee = [
+    kotlinVersion: "2.0.21",
+    minSdkVersion: 24,
+    compileSdkVersion: 36
+  ]
+
+  ext.getExtOrDefault = { prop ->
+    if (rootProject.ext.has(prop) && rootProject.ext.get(prop) != null) {
+      return rootProject.ext.get(prop)
+    }
+    return Marquee[prop]
+  }
+
+  repositories {
+    google()
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath "com.android.tools.build:gradle:8.7.2"
+    classpath "com.facebook.react:react-native-gradle-plugin"
+    // noinspection DifferentKotlinGradleVersion
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${getExtOrDefault('kotlinVersion')}"
+  }
+}
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+apply plugin: "com.facebook.react"
+
+android {
+  namespace "com.marquee"
+  compileSdkVersion getExtOrDefault("compileSdkVersion")
+
+  defaultConfig {
+    minSdkVersion getExtOrDefault("minSdkVersion")
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+}
+
+def standaloneReactAndroid = file("../node_modules/react-native/package.json")
+def reactAndroidDependency = standaloneReactAndroid.exists()
+  ? "com.facebook.react:react-android:${new groovy.json.JsonSlurper().parse(standaloneReactAndroid).version}"
+  : "com.facebook.react:react-android"
+
+dependencies {
+  implementation reactAndroidDependency
+  testImplementation "junit:junit:4.13.2"
+  androidTestImplementation "androidx.test:core:1.6.1"
+  androidTestImplementation "androidx.test.ext:junit:1.2.1"
+  androidTestImplementation "androidx.test:runner:1.6.2"
+}

@@ -1,0 +1,157 @@
+name: Native builds
+
+on:
+  merge_group:
+    types: [checks_requested]
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-tests:
+    name: iOS native XCTest
+    runs-on: macos-26
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Select iOS Simulator
+        run: |
+          device=$(xcrun simctl list devices available -j | jq -r '.devices[][] | select(.name | startswith("iPhone")) | .udid' | head -n 1)
+          test -n "${device}"
+          echo "SIMULATOR_UDID=${device}" >> "${GITHUB_ENV}"
+
+      - name: Run Swift native tests
+        run: >-
+          xcodebuild test
+          -scheme RNMarquee
+          -destination "platform=iOS Simulator,id=${SIMULATOR_UDID}"
+          CODE_SIGNING_ALLOWED=NO
+          -quiet
+
+  android:
+    name: Android New Architecture (${{ matrix.consumer }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        consumer: [workspace, packed]
+    env:
+      NODE_ENV: production
+      ORG_GRADLE_PROJECT_newArchEnabled: 'true'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Select workspace consumer
+        if: matrix.consumer == 'workspace'
+        run: echo "EXAMPLE_DIRECTORY=${GITHUB_WORKSPACE}/example" >> "${GITHUB_ENV}"
+
+      - name: Prepare packed consumer
+        if: matrix.consumer == 'packed'
+        run: |
+          bun run build
+          archive=$(bun pm pack --ignore-scripts --destination "${RUNNER_TEMP}" --quiet | tail -n 1)
+          ./scripts/verify-package-contents.sh "${archive}"
+          ./scripts/prepare-packed-consumer.sh "${archive}" "${RUNNER_TEMP}/packed-example"
+          echo "EXAMPLE_DIRECTORY=${RUNNER_TEMP}/packed-example" >> "${GITHUB_ENV}"
+
+      - name: Generate Expo Android project
+        run: bunx expo prebuild --clean --no-install --platform android
+        working-directory: ${{ env.EXAMPLE_DIRECTORY }}
+
+      - name: Build Android release app
+        run: cd android && ./gradlew assembleRelease -Dorg.gradle.jvmargs=-Xmx4g
+        working-directory: ${{ env.EXAMPLE_DIRECTORY }}
+
+      - name: Run library JVM tests
+        if: matrix.consumer == 'workspace'
+        run: cd android && ./gradlew :react-native-marquee-animation:testDebugUnitTest
+        working-directory: ${{ env.EXAMPLE_DIRECTORY }}
+
+  ios:
+    name: iOS New Architecture (${{ matrix.consumer }}, ${{ matrix.frameworks }})
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        consumer: [workspace, packed]
+        frameworks: [static-library, static-framework]
+    env:
+      NODE_ENV: production
+      RCT_NEW_ARCH_ENABLED: '1'
+      RCT_REMOVE_LEGACY_ARCH: '1'
+      RCT_USE_PREBUILT_RNCORE: '1'
+      RCT_USE_RN_DEP: '1'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup
+
+      - name: Select workspace consumer
+        if: matrix.consumer == 'workspace'
+        run: echo "EXAMPLE_DIRECTORY=${GITHUB_WORKSPACE}/example" >> "${GITHUB_ENV}"
+
+      - name: Prepare packed consumer
+        if: matrix.consumer == 'packed'
+        run: |
+          bun run build
+          archive=$(bun pm pack --ignore-scripts --destination "${RUNNER_TEMP}" --quiet | tail -n 1)
+          ./scripts/verify-package-contents.sh "${archive}"
+          ./scripts/prepare-packed-consumer.sh "${archive}" "${RUNNER_TEMP}/packed-example"
+          echo "EXAMPLE_DIRECTORY=${RUNNER_TEMP}/packed-example" >> "${GITHUB_ENV}"
+
+      - name: Enable static frameworks
+        if: matrix.frameworks == 'static-framework'
+        run: echo "USE_FRAMEWORKS=static" >> "${GITHUB_ENV}"
+
+      - name: Configure static-library consumer
+        if: matrix.frameworks == 'static-library'
+        run: |
+          jq '(.expo.plugins[] | select(.[0] == "expo-build-properties").[1].ios) |= del(.useFrameworks)' app.json > app.json.tmp
+          mv app.json.tmp app.json
+        working-directory: ${{ env.EXAMPLE_DIRECTORY }}
+
+      - name: Generate Expo iOS project
+        run: bunx expo prebuild --clean --no-install --platform ios
+        working-directory: ${{ env.EXAMPLE_DIRECTORY }}
+
+      - name: Install pods
+        run: pod install
+        working-directory: ${{ env.EXAMPLE_DIRECTORY }}/ios
+
+      - name: Build iOS release simulator app
+        run: >-
+          xcodebuild
+          IPHONEOS_DEPLOYMENT_TARGET=17.0
+          ONLY_ACTIVE_ARCH=YES
+          -workspace ios/MarqueeExample.xcworkspace
+          -scheme MarqueeExample
+          -configuration Release
+          -sdk iphonesimulator
+          -derivedDataPath ios/build
+          CODE_SIGNING_ALLOWED=NO
+          -quiet
+        working-directory: ${{ env.EXAMPLE_DIRECTORY }}

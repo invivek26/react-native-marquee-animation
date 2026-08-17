@@ -1,0 +1,34 @@
+{
+  "name": "react-native-marquee-example",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "prebuild": "expo prebuild",
+    "prebuild:clean": "expo prebuild --clean",
+    "build:android": "cd android && ./gradlew assembleDebug -DtestBuildType=debug -Dorg.gradle.jvmargs=-Xmx4g",
+    "capture:android": "expo prebuild --clean --platform android && expo run:android --variant release",
+    "capture:ios": "expo prebuild --clean --platform ios && expo run:ios --configuration Release",
+    "build:ios": "xcodebuild ONLY_ACTIVE_ARCH=YES -workspace ios/MarqueeExample.xcworkspace -UseNewBuildSystem=YES -scheme MarqueeExample -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build -quiet"
+  },
+  "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo/metro-runtime": "~56.0.19",
+    "expo": "~56.0.19",
+    "expo-build-properties": "~56.0.25",
+    "expo-dev-client": "~56.0.24",
+    "expo-font": "~56.0.7",
+    "expo-image": "~56.0.11",
+    "expo-linking": "~56.0.16",
+    "expo-status-bar": "~56.0.4",
+    "react": "19.2.3",
+    "react-native": "0.85.3"
+  },
+  "devDependencies": {
+    "babel-preset-expo": "~56.0.19",
+    "react-native-monorepo-config": "^0.4.0"
+  }
+}

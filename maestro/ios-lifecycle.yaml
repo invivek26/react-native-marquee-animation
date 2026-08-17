@@ -1,0 +1,35 @@
+appId: com.invivek26.marqueeexample
+name: iOS marquee lifecycle
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: showcase-screen
+    timeout: 15000
+- openLink: marquee-example://benchmark?scenario=active&count=10&durationSeconds=20
+- tapOn:
+    text: Open
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: benchmark-screen
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: benchmark-marquee-0
+    timeout: 15000
+- pressKey: HOME
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      id: benchmark-marquee-0
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: lifecycle-status
+    direction: DOWN
+- assertVisible: active
+- assertVisible:
+    id: animation-status

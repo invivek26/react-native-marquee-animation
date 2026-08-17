@@ -1,0 +1,15 @@
+appId: ${APP_ID}
+---
+- openLink:
+    link: marquee-example://benchmark?scenario=gesture&count=${COUNT}&durationSeconds=${DURATION_SECONDS}
+- assertVisible:
+    id: gallery-scroll
+- repeat:
+    times: ${SWIPE_REPETITIONS}
+    commands:
+      - swipe:
+          direction: UP
+          duration: 450
+      - swipe:
+          direction: DOWN
+          duration: 450

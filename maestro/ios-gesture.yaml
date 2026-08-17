@@ -1,0 +1,44 @@
+appId: com.invivek26.marqueeexample
+name: iOS marquee gestures
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: showcase-screen
+    timeout: 15000
+- openLink: marquee-example://benchmark?scenario=gesture&count=1&durationSeconds=15
+- tapOn:
+    text: Open
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: benchmark-screen
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: benchmark-marquee-0
+    timeout: 15000
+- longPressOn:
+    id: benchmark-marquee-0
+- swipe:
+    start: 85%, 29%
+    end: 15%, 29%
+    duration: 800
+- swipe:
+    start: 20%, 29%
+    end: 80%, 29%
+    duration: 100
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: 85%, 29%
+          end: 15%, 29%
+          duration: 100
+      - swipe:
+          start: 15%, 29%
+          end: 85%, 29%
+          duration: 100
+- assertVisible:
+    id: benchmark-marquee-0

@@ -1,0 +1,65 @@
+name: Bug report
+description: Report a reproducible marquee bug or regression.
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Before submitting
+      options:
+        - label: I tested the latest package version.
+          required: true
+        - label: I reproduced this in a development or production build, not Expo Go.
+          required: true
+        - label: I searched for an existing issue.
+          required: true
+  - type: input
+    id: package-version
+    attributes:
+      label: Package version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include React Native, React, Expo, OS/device, build type, and New Architecture status.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [iOS, Android]
+    validations:
+      required: true
+  - type: dropdown
+    id: content-update
+    attributes:
+      label: Content state
+      options:
+        - Static content
+        - Same-width updates
+        - Width-changing updates
+        - Rapid updates
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Observed behavior
+      description: Describe movement, disappearance, seam, spacing, lifecycle, or accessibility symptoms.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction and steps
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Include Release/Debug comparison, lifecycle state, Reduce Motion, fonts, item keys, item/container widths, and recordings where possible.

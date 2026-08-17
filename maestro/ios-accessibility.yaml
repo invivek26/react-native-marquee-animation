@@ -1,0 +1,40 @@
+appId: com.invivek26.marqueeexample
+name: iOS marquee accessibility representation
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: showcase-screen
+    timeout: 15000
+- openLink: marquee-example://benchmark?scenario=static&count=1&durationSeconds=10
+- tapOn:
+    text: Open
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: benchmark-screen
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: benchmark-marquee-0
+    timeout: 15000
+- assertVisible: 'Market ticker with symbols, images, charts, badges, and percentage changes'
+- scrollUntilVisible:
+    element:
+      id: accessibility-summary
+    direction: DOWN
+- assertVisible:
+    id: accessibility-summary
+- assertVisible:
+    id: reduce-motion-status
+- scrollUntilVisible:
+    element:
+      id: reduce-motion-always-button
+    direction: DOWN
+- tapOn:
+    id: reduce-motion-always-button
+- assertVisible: always
+- tapOn:
+    id: reduce-motion-system-button
+- assertVisible: system

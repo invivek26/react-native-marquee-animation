@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["route", "defaults", "mixedContent", "scenarios"],
+  "properties": {
+    "route": { "type": "object" },
+    "defaults": { "type": "object" },
+    "mixedContent": { "type": "object" },
+    "scenarios": { "type": "object" }
+  },
+  "additionalProperties": false
+}

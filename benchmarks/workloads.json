@@ -1,0 +1,61 @@
+{
+  "$schema": "./workloads.schema.json",
+  "route": {
+    "scheme": "marquee-example",
+    "host": "benchmark",
+    "query": ["scenario", "count", "durationSeconds"]
+  },
+  "defaults": {
+    "durationSeconds": 30,
+    "counts": [1, 10, 30, 100],
+    "speedPointsPerSecond": 25,
+    "updateIntervalMs": 100
+  },
+  "mixedContent": {
+    "description": "A production-shaped arbitrary React Native child containing an image, nested text, a badge, and a composed chart.",
+    "itemWidth": 108,
+    "itemGap": 32,
+    "height": 50,
+    "imageSize": 20,
+    "primaryFontSize": 12,
+    "secondaryFontSize": 11,
+    "chartWidth": 48,
+    "chartHeight": 22,
+    "updateData": {
+      "stableWidth": ["+01.23%", "+04.56%"],
+      "changingWidth": ["+0.09%", "+12.34%", "-100.00%"]
+    }
+  },
+  "scenarios": {
+    "baseline": {
+      "motion": false,
+      "updates": false,
+      "description": "Same screen and child hierarchy with native marquee motion disabled."
+    },
+    "static": {
+      "motion": false,
+      "updates": false,
+      "description": "Short content that fits the viewport; verifies that stationary marquees schedule no frames."
+    },
+    "active": {
+      "motion": true,
+      "updates": false,
+      "description": "Production-shaped children moving continuously at 25 points per second."
+    },
+    "updates": {
+      "motion": true,
+      "updates": true,
+      "description": "Alternates width-stable and width-changing values every 100 ms while moving."
+    },
+    "gesture": {
+      "motion": true,
+      "updates": false,
+      "description": "Active marquees inside a vertically scrolling/recycling list while repeated swipe gestures run."
+    },
+    "stress": {
+      "motion": true,
+      "updates": true,
+      "description": "Worst-case mounted count; the example must only animate visible, attached rows."
+    }
+  }
+}

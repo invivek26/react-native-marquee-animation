@@ -1,0 +1,140 @@
+name: Release E2E
+
+on:
+  schedule:
+    - cron: '30 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to validate
+        required: true
+        default: all
+        type: choice
+        options: [all, ios, android]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-maestro:
+    if: github.event_name == 'schedule' || inputs.platform == 'all' || inputs.platform == 'ios'
+    name: iOS release Maestro
+    runs-on: macos-26
+    env:
+      NODE_ENV: production
+      RCT_NEW_ARCH_ENABLED: '1'
+      RCT_REMOVE_LEGACY_ARCH: '1'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup
+
+      - name: Generate iOS project
+        run: bunx expo prebuild --clean --platform ios
+        working-directory: example
+
+      - name: Boot simulator
+        run: |
+          device=$(xcrun simctl list devices available -j | jq -r '.devices[][] | select(.name | startswith("iPhone")) | .udid' | head -n 1)
+          test -n "${device}"
+          echo "SIMULATOR_UDID=${device}" >> "${GITHUB_ENV}"
+          xcrun simctl boot "${device}" || true
+          open -a Simulator
+
+      - name: Build and install release app
+        run: |
+          xcodebuild ONLY_ACTIVE_ARCH=YES \
+            -workspace ios/MarqueeExample.xcworkspace \
+            -scheme MarqueeExample \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination "id=${SIMULATOR_UDID}" \
+            -derivedDataPath ios/build \
+            CODE_SIGNING_ALLOWED=NO \
+            -quiet
+          app=$(find ios/build/Build/Products/Release-iphonesimulator -name '*.app' -maxdepth 2 -print -quit)
+          test -n "${app}"
+          xcrun simctl install "${SIMULATOR_UDID}" "${app}"
+        working-directory: example
+
+      - name: Install Maestro
+        run: curl -fsSL https://get.maestro.mobile.dev | bash
+
+      - name: Run iOS flows
+        timeout-minutes: 25
+        run: ./scripts/run-ios-maestro.sh
+
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-maestro-artifacts
+          path: |
+            ~/.maestro/tests
+            ${{ runner.temp }}/maestro-ios.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  android-maestro:
+    if: github.event_name == 'schedule' || inputs.platform == 'all' || inputs.platform == 'android'
+    name: Android release Maestro
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: production
+      ORG_GRADLE_PROJECT_newArchEnabled: 'true'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate Android project
+        run: bunx expo prebuild --clean --platform android
+        working-directory: example
+
+      - name: Build release APK
+        run: ./gradlew assembleRelease -Dorg.gradle.jvmargs=-Xmx4g
+        working-directory: example/android
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: curl -fsSL https://get.maestro.mobile.dev | bash
+
+      - name: Run Android flows
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          script: ./scripts/run-android-maestro.sh
+
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-maestro-artifacts
+          path: |
+            ~/.maestro/tests
+            ${{ runner.temp }}/maestro-android.log
+            android/build/outputs/androidTest-results
+            android/build/reports/androidTests
+          if-no-files-found: ignore
+          retention-days: 14

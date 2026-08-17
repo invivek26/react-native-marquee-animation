@@ -1,0 +1,137 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Label the dry-run artifact
+        required: true
+        default: stable
+        type: choice
+        options: [stable, next]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up workspace
+        uses: ./.github/actions/setup
+
+      - name: Verify and build
+        run: bun run check
+
+      - name: Validate release tag
+        if: github.event_name == 'push'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          package_version=$(bun -p "require('./package.json').version")
+          test "${RELEASE_TAG}" = "v${package_version}"
+
+      - name: Pack and verify exact artifact
+        run: |
+          archive=$(bun pm pack --ignore-scripts --destination "${RUNNER_TEMP}" --quiet | tail -n 1)
+          ./scripts/verify-package-contents.sh "${archive}"
+          archive_directory=$(dirname "${archive}")
+          archive_name=$(basename "${archive}")
+          (cd "${archive_directory}" && sha256sum "${archive_name}" > "${archive_name}.sha256")
+          echo "PACKAGE_ARCHIVE=${archive}" >> "${GITHUB_ENV}"
+
+      - name: Upload dry-run package
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-native-marquee-animation-${{ inputs.channel }}-dry-run
+          path: |
+            ${{ env.PACKAGE_ARCHIVE }}
+            ${{ env.PACKAGE_ARCHIVE }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload tagged package
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-native-marquee-animation-${{ github.ref_name }}
+          path: |
+            ${{ env.PACKAGE_ARCHIVE }}
+            ${{ env.PACKAGE_ARCHIVE }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  stage-npm:
+    if: github.event_name == 'push'
+    needs: package
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node for npm trusted publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install staged-publishing npm CLI
+        run: npm install --global npm@11.19.0
+
+      - name: Download verified package
+        uses: actions/download-artifact@v5
+        with:
+          name: react-native-marquee-animation-${{ github.ref_name }}
+          path: package-artifact
+
+      - name: Verify checksum and stage package
+        run: |
+          cd package-artifact
+          sha256sum --check *.sha256
+          archive=$(find . -name '*.tgz' -type f -print -quit)
+          version=$(node -p "require('../package.json').version")
+          tag=latest
+          if [[ "${version}" == *-* ]]; then tag=next; fi
+          npm stage publish "$(realpath "${archive}")" --access public --tag "${tag}"
+
+  github-release:
+    if: github.event_name == 'push'
+    needs: stage-npm
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Download staged package
+        uses: actions/download-artifact@v5
+        with:
+          name: react-native-marquee-animation-${{ github.ref_name }}
+          path: package-artifact
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          if [[ "${GITHUB_REF_NAME}" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "${GITHUB_REF_NAME}" \
+            package-artifact/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            "${flags[@]}"

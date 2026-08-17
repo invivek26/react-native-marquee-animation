@@ -1,0 +1,38 @@
+appId: com.invivek26.marqueeexample
+name: iOS 100-view marquee stress
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: showcase-screen
+    timeout: 15000
+- openLink: marquee-example://benchmark?scenario=stress&count=100&durationSeconds=8
+- tapOn:
+    text: Open
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: benchmark-screen
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: benchmark-marquee-0
+    timeout: 20000
+- assertVisible: '100 views'
+- repeat:
+    times: 12
+    commands:
+      - swipe:
+          direction: UP
+          duration: 250
+          waitToSettleTimeoutMs: 0
+- repeat:
+    times: 12
+    commands:
+      - swipe:
+          direction: DOWN
+          duration: 250
+          waitToSettleTimeoutMs: 0
+- assertVisible:
+    id: benchmark-marquee-0

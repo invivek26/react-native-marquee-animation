@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "Marquee Example",
+    "slug": "react-native-marquee-example",
+    "scheme": "marquee-example",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "deploymentTarget": "17.0",
+      "bundleIdentifier": "com.invivek26.marqueeexample"
+    },
+    "android": {
+      "package": "com.invivek26.marqueeexample"
+    },
+    "plugins": [
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
+            "./node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf"
+          ],
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Inter",
+                "fontDefinitions": [
+                  {
+                    "path": "./node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
+                    "weight": 600
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      [
+        "expo-dev-client",
+        {
+          "showMenuAtLaunch": false,
+          "toolsButton": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          },
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
+    ]
+  }
+}
