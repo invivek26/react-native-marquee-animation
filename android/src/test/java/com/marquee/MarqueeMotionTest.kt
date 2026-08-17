@@ -7,6 +7,33 @@ import org.junit.Test
 
 class MarqueeMotionTest {
   @Test
+  fun missedFrameUsesVisualContinuityLimitInsteadOfWallClockCatchUp() {
+    val motion = MarqueeMotion()
+    motion.configure(periodPx = 1_000.0, speedPxPerSecond = 60.0, preservePhase = false)
+    motion.startAuto()
+    motion.advance(1_000_000_000L, maximumDeltaSeconds = 1.0 / 60.0)
+
+    motion.advance(1_100_000_000L, maximumDeltaSeconds = 1.0 / 60.0)
+
+    assertEquals(1.0, motion.phasePx, 0.0001)
+  }
+
+  @Test
+  fun continuityLimitTracksCommonDisplayRefreshRates() {
+    listOf(60.0, 90.0, 120.0).forEach { refreshRate ->
+      val motion = MarqueeMotion()
+      motion.configure(periodPx = 1_000.0, speedPxPerSecond = 120.0, preservePhase = false)
+      motion.startAuto()
+      val maximumDeltaSeconds = 1.25 / refreshRate
+      motion.advance(1_000_000_000L, maximumDeltaSeconds)
+
+      motion.advance(1_100_000_000L, maximumDeltaSeconds)
+
+      assertEquals(120.0 * maximumDeltaSeconds, motion.phasePx, 0.0001)
+    }
+  }
+
+  @Test
   fun autoMotionUsesFractionalMonotonicTimeAndWraps() {
     val motion = MarqueeMotion()
     motion.configure(periodPx = 10.0, speedPxPerSecond = 25.0, preservePhase = false)

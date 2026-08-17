@@ -3,6 +3,7 @@ package com.marquee
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Rect
+import android.os.Build
 import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.MotionEvent
@@ -97,7 +98,6 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
 
   override fun dispatchDraw(canvas: Canvas) {
     val child = getChildAt(0) ?: return
-    synchronizeContentWidthFromChild()
     val contentWidth = contentWidthPx()
     if (width <= 0 || height <= 0 || contentWidth <= 0f) return
 
@@ -135,8 +135,11 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
 
   override fun doFrame(frameTimeNanos: Long) {
     framePosted = false
-    if (!attachedAndVisible || !getGlobalVisibleRect(visibleRect) || visibleRect.isEmpty) return
-    if (motion.advance(frameTimeNanos)) invalidate()
+    if (!attachedAndVisible || !getGlobalVisibleRect(visibleRect) || visibleRect.isEmpty) {
+      stopFrames()
+      return
+    }
+    if (motion.advance(frameTimeNanos, maximumFrameDeltaSeconds())) invalidate()
     reportMotionState()
     if (motion.isFrameDriven() && shouldScheduleMotion()) postFrame()
   }
@@ -313,16 +316,37 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
     (committedProps.speed != 0.0 || motion.mode == MarqueeMotion.Mode.FLING ||
       motion.mode == MarqueeMotion.Mode.BLEND)
 
+  private fun maximumFrameDeltaSeconds(): Double {
+    val refreshRate = display?.refreshRate?.toDouble()
+      ?.takeIf { it.isFinite() && it > 0.0 }
+      ?: DEFAULT_REFRESH_RATE_HZ
+    return FRAME_INTERVAL_TOLERANCE / refreshRate
+  }
+
   private fun postFrame() {
-    if (framePosted || !isAttachedToWindow) return
+    if (!isAttachedToWindow) return
+    requestHighFrameRate()
+    if (framePosted) return
     framePosted = true
     Choreographer.getInstance().postFrameCallback(this)
   }
 
   private fun stopFrames() {
-    if (!framePosted) return
-    Choreographer.getInstance().removeFrameCallback(this)
+    if (framePosted) Choreographer.getInstance().removeFrameCallback(this)
     framePosted = false
+    clearFrameRateRequest()
+  }
+
+  private fun requestHighFrameRate() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+      requestedFrameRate = REQUESTED_FRAME_RATE_CATEGORY_HIGH
+    }
+  }
+
+  private fun clearFrameRateRequest() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+      requestedFrameRate = REQUESTED_FRAME_RATE_CATEGORY_DEFAULT
+    }
   }
 
   private fun reportMotionState() {
@@ -357,6 +381,8 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
     const val WIDTH_EPSILON = 0.5f
     const val EDGE_GESTURE_INSET_DP = 24f
     const val PAN_DOMINANCE_RATIO = 1.15f
+    const val DEFAULT_REFRESH_RATE_HZ = 60.0
+    const val FRAME_INTERVAL_TOLERANCE = 1.25
   }
 }
 

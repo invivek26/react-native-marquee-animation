@@ -33,7 +33,7 @@ Stable automation identifiers expected by Maestro and manual trace notes are:
 
 - Item width: 108
 - Gap: 32
-- Speed: 25 points/second
+- Speeds: 25, 50, and 100 points/second
 - One ordinary React Native image: 20 × 20
 - Nested primary and secondary text: 12sp and 11sp
 - A status badge
@@ -46,8 +46,8 @@ Scenarios:
 | ---------- | ---------------------------------------------------------------------------------- |
 | `baseline` | Same hierarchy with marquee motion disabled.                                       |
 | `static`   | Content fits; proves idle instances schedule no animation work.                    |
-| `active`   | Static production children at 25 points/second.                                    |
-| `updates`  | Alternating same-width and width-changing values every 100ms.                      |
+| `active`   | Frozen production children at the requested speed.                                 |
+| `updates`  | Alternating same-width and width-changing values at the same speed every 50ms.     |
 | `gesture`  | Active marquees while a vertical virtualized list repeatedly scrolls and recycles. |
 | `stress`   | Updates plus 100 mounted rows; only visible rows may animate.                      |
 
@@ -60,7 +60,8 @@ Requirements: a release/profileable build installed on a physical device, `adb`,
 ```bash
 benchmarks/scripts/android-capture.sh baseline 30
 benchmarks/scripts/android-capture.sh active 30
-benchmarks/scripts/android-capture.sh updates 30
+SPEED=50 benchmarks/scripts/android-capture.sh updates 30
+SPEED=100 benchmarks/scripts/android-capture.sh updates 30
 benchmarks/scripts/android-capture.sh gesture 100
 ```
 
@@ -117,7 +118,8 @@ Install a release build, boot the target simulator or connect a physical device,
 ```bash
 benchmarks/scripts/ios-capture.sh baseline 30
 benchmarks/scripts/ios-capture.sh active 30
-benchmarks/scripts/ios-capture.sh updates 30
+SPEED=50 benchmarks/scripts/ios-capture.sh updates 30
+SPEED=100 benchmarks/scripts/ios-capture.sh updates 30
 benchmarks/scripts/ios-capture.sh gesture 100
 ```
 

@@ -16,6 +16,7 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-$BENCHMARK_DIR/results/ios}"
 CAPTURE_VIDEO="${CAPTURE_VIDEO:-1}"
 USE_SIMULATOR_SAMPLE="${USE_SIMULATOR_SAMPLE:-1}"
 SPARKLINES="${SPARKLINES:-1}"
+SPEED="${SPEED:-25}"
 
 case "$SCENARIO" in
   baseline|static|active|updates|gesture|stress) ;;
@@ -27,12 +28,17 @@ case "$COUNT" in
   *) echo "Count must be one of 1, 10, 30, 100" >&2; exit 2 ;;
 esac
 
+case "$SPEED" in
+  25|50|100) ;;
+  *) echo "Speed must be one of 25, 50, 100" >&2; exit 2 ;;
+esac
+
 command -v xcrun >/dev/null || { echo "Xcode command-line tools are required" >&2; exit 1; }
 
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_DIR="$OUTPUT_ROOT/$TIMESTAMP-$SCENARIO-$COUNT"
 mkdir -p "$RUN_DIR"
-URI="marquee-example://benchmark?scenario=$SCENARIO&count=$COUNT&durationSeconds=$DURATION_SECONDS&sparklines=$SPARKLINES"
+URI="marquee-example://benchmark?scenario=$SCENARIO&count=$COUNT&speed=$SPEED&durationSeconds=$DURATION_SECONDS&sparklines=$SPARKLINES"
 XCTRACE_DEVICE="$IOS_DEVICE"
 ATTACH_TARGET="$IOS_PROCESS_NAME"
 VIDEO_PID=""
@@ -144,6 +150,7 @@ cat > "$RUN_DIR/metadata.json" <<EOF
   "scenario": "$SCENARIO",
   "count": $COUNT,
   "sparklines": $SPARKLINES,
+  "speedPointsPerSecond": $SPEED,
   "durationSeconds": $DURATION_SECONDS,
   "bundleId": "$IOS_BUNDLE_ID",
   "processName": "$IOS_PROCESS_NAME",

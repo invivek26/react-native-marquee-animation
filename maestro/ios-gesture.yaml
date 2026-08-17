@@ -7,10 +7,12 @@ name: iOS marquee gestures
     visible:
       id: showcase-screen
     timeout: 15000
-- openLink: marquee-example://benchmark?scenario=gesture&count=1&durationSeconds=15
+- scrollUntilVisible:
+    element:
+      id: open-gesture-lab-button
+    direction: DOWN
 - tapOn:
-    text: Open
-    optional: true
+    id: open-gesture-lab-button
 - extendedWaitUntil:
     visible:
       id: benchmark-screen

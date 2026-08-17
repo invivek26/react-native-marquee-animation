@@ -95,6 +95,9 @@ are native-owned:
 
 After a fling decelerates, both platforms blend velocity into the configured
 automatic direction over 350 ms instead of stopping or snapping.
+`pauseOnPress: true` pauses immediately on touch-down. `resumeDelay` controls
+when automatic motion resumes after release. On iOS, drag, fling, and the blend
+back to automatic motion are synchronized to the active screen's refresh rate.
 
 ## Content contract
 
@@ -133,11 +136,14 @@ items must be clickable.
   display callback during automatic motion.
 - Android mounts one Fabric child container in a custom `ViewGroup` and replays
   the existing hardware display lists at repeated canvas offsets. A monotonic
-  `Choreographer` clock changes only the translation phase.
+  `Choreographer` clock changes only the translation phase. Missed callbacks
+  advance by at most roughly one current display interval instead of catching
+  up in one visible jump; API 35+ requests a high refresh rate only while active.
 - Same-width visual updates do not restart motion. Width changes preserve the
   physical offset and velocity while native code recomputes the loop period.
-- Content that fits, inactive/offscreen/detached views, backgrounded apps, and
-  Reduced Motion schedule no continuous frame work.
+- Content that fits, `active={false}`, detached views, backgrounded apps, and
+  Reduced Motion schedule no continuous frame work. Window-attached views use
+  `active` as the authoritative application-level visibility signal.
 - Only the host is accessible; visually repeated descendants are hidden from
   VoiceOver and TalkBack.
 

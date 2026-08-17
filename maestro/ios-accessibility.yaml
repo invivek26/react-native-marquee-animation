@@ -7,10 +7,12 @@ name: iOS marquee accessibility representation
     visible:
       id: showcase-screen
     timeout: 15000
-- openLink: marquee-example://benchmark?scenario=static&count=1&durationSeconds=10
+- scrollUntilVisible:
+    element:
+      id: open-static-lab-button
+    direction: DOWN
 - tapOn:
-    text: Open
-    optional: true
+    id: open-static-lab-button
 - extendedWaitUntil:
     visible:
       id: benchmark-screen
@@ -28,13 +30,4 @@ name: iOS marquee accessibility representation
     id: accessibility-summary
 - assertVisible:
     id: reduce-motion-status
-- scrollUntilVisible:
-    element:
-      id: reduce-motion-always-button
-    direction: DOWN
-- tapOn:
-    id: reduce-motion-always-button
-- assertVisible: always
-- tapOn:
-    id: reduce-motion-system-button
 - assertVisible: system

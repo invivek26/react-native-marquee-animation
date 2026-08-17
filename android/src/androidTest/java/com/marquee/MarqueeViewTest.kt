@@ -9,6 +9,7 @@ import android.widget.FrameLayout
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.facebook.react.uimanager.DisplayMetricsHolder
+import com.facebook.react.uimanager.PixelUtil
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Before
@@ -63,6 +64,23 @@ class MarqueeViewTest {
     view.resetForRecycle()
 
     assertEquals(0f, view.pendingProps.contentWidth)
+  }
+
+  @Test
+  fun layoutSynchronizesNativeChildWidthWithoutDrawing() {
+    val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+    val view = MarqueeView(context)
+    val content = FrameLayout(context)
+    view.addView(content)
+    content.measure(exactly(600), exactly(64))
+    content.layout(0, 0, 600, 64)
+    view.pendingProps.contentWidth = 100f
+    view.commitProps()
+    view.measure(exactly(320), exactly(64))
+
+    view.layout(0, 0, 320, 64)
+
+    assertEquals(PixelUtil.toDIPFromPixel(600f), view.pendingProps.contentWidth)
   }
 
   @Test

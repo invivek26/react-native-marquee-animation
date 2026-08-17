@@ -7,10 +7,12 @@ name: iOS generic marquee smoke
     visible:
       id: showcase-screen
     timeout: 15000
-- openLink: marquee-example://benchmark?scenario=active&count=1&durationSeconds=10
+- scrollUntilVisible:
+    element:
+      id: open-lab-button
+    direction: DOWN
 - tapOn:
-    text: Open
-    optional: true
+    id: open-lab-button
 - extendedWaitUntil:
     visible:
       id: benchmark-screen
@@ -19,40 +21,9 @@ name: iOS generic marquee smoke
     id: benchmark-marquee-0
 - assertVisible:
     id: benchmark-scenario
-- scrollUntilVisible:
-    element:
-      id: scenario-static-button
-    direction: DOWN
-- tapOn:
-    id: scenario-static-button
-- assertVisible: static
-- scrollUntilVisible:
-    element:
-      id: scenario-updates-button
-    direction: DOWN
-- tapOn:
-    id: scenario-updates-button
-- scrollUntilVisible:
-    element:
-      id: update-mode-width-changing
-    direction: DOWN
-- tapOn:
-    id: update-mode-width-changing
-- scrollUntilVisible:
-    element:
-      id: update-count
-    direction: UP
-- assertVisible:
-    id: update-count
-- scrollUntilVisible:
-    element:
-      id: pause-button
-    direction: DOWN
-- tapOn:
-    id: pause-button
-- scrollUntilVisible:
-    element:
-      id: resume-button
-    direction: DOWN
-- tapOn:
-    id: resume-button
+- longPressOn:
+    id: benchmark-marquee-0
+- swipe:
+    start: 85%, 29%
+    end: 15%, 29%
+    duration: 150

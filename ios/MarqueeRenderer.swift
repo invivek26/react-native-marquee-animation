@@ -38,6 +38,16 @@ enum MarqueeMath {
     return from + (to - from) * eased
   }
 
+  static func clampedFrameElapsed(
+    elapsed: CFTimeInterval,
+    frameInterval: CFTimeInterval
+  ) -> CFTimeInterval {
+    let safeInterval = frameInterval.isFinite && frameInterval > 0
+      ? frameInterval
+      : 1 / 60
+    return min(max(0, elapsed), safeInterval * 1.25)
+  }
+
   static func shouldBeginPan(
     velocity: CGPoint,
     startX: CGFloat,
@@ -60,6 +70,11 @@ private enum MarqueeState: String {
   case reducedMotion = "reducedMotion"
 }
 
+private enum InteractiveDisplayMode {
+  case dragging
+  case inertia
+}
+
 @objcMembers public final class MarqueeRenderer: UIView, UIGestureRecognizerDelegate {
   public weak var delegate: MarqueeRendererDelegate?
 
@@ -74,7 +89,9 @@ private enum MarqueeState: String {
   private var isHolding = false
   private var isDragging = false
   private var panStartOffset: CGFloat = 0
+  private var pendingDragOffset: CGFloat?
   private var displayLink: CADisplayLink?
+  private var interactiveDisplayMode: InteractiveDisplayMode?
   private var lastDisplayTimestamp: CFTimeInterval = 0
   private var inertiaVelocity: CGFloat = 0
   private var isBlendingToAuto = false
@@ -272,6 +289,8 @@ private enum MarqueeState: String {
     accessibilityElementsHidden = true
     panGesture.delegate = self
     holdGesture.delegate = self
+    holdGesture.minimumPressDuration = 0
+    holdGesture.cancelsTouchesInView = false
     addGestureRecognizer(panGesture)
     addGestureRecognizer(holdGesture)
     registerNotifications()
@@ -458,24 +477,56 @@ private enum MarqueeState: String {
     guard canScrollGeometry, !effectiveReduceMotion else { return }
     switch gesture.state {
     case .began:
-      cancelResume()
-      isDragging = true
-      freezeMotion()
-      panStartOffset = currentPhysicalOffset()
-      emitState(.paused)
+      beginDrag()
     case .changed:
-      setContentOffset(panStartOffset + gesture.translation(in: self).x)
+      queueDrag(translation: gesture.translation(in: self).x)
     case .ended:
-      isDragging = false
-      isHolding = false
-      beginInertia(velocity: gesture.velocity(in: self).x)
+      endDrag(
+        translation: gesture.translation(in: self).x,
+        velocity: gesture.velocity(in: self).x
+      )
     case .cancelled, .failed:
-      isDragging = false
-      isHolding = false
-      scheduleResume()
+      cancelDrag()
     default:
       break
     }
+  }
+
+  private func beginDrag() {
+    cancelResume()
+    isDragging = true
+    freezeMotion()
+    panStartOffset = currentPhysicalOffset()
+    pendingDragOffset = panStartOffset
+    startDisplayLink(mode: .dragging)
+    emitState(.paused)
+  }
+
+  private func queueDrag(translation: CGFloat) {
+    pendingDragOffset = panStartOffset + translation
+  }
+
+  private func applyPendingDragOffset() {
+    guard let pendingDragOffset else { return }
+    setContentOffset(pendingDragOffset)
+    self.pendingDragOffset = nil
+  }
+
+  private func endDrag(translation: CGFloat, velocity: CGFloat) {
+    queueDrag(translation: translation)
+    applyPendingDragOffset()
+    stopDisplayLink()
+    isDragging = false
+    isHolding = false
+    beginInertia(velocity: velocity)
+  }
+
+  private func cancelDrag() {
+    applyPendingDragOffset()
+    stopDisplayLink()
+    isDragging = false
+    isHolding = false
+    scheduleResume()
   }
 
   private func beginInertia(velocity: CGFloat) {
@@ -494,18 +545,36 @@ private enum MarqueeState: String {
       blendStartVelocity = inertiaVelocity
       isBlendingToAuto = true
     }
-    let link = CADisplayLink(target: self, selector: #selector(stepInertia(_:)))
-    displayLink = link
-    link.add(to: .main, forMode: .common)
+    startDisplayLink(mode: .inertia)
     emitState(.running)
   }
 
-  @objc private func stepInertia(_ link: CADisplayLink) {
+  private func startDisplayLink(mode: InteractiveDisplayMode) {
+    let link = CADisplayLink(target: self, selector: #selector(stepDisplayLink(_:)))
+    let maximum = Float(max(1, window?.screen.maximumFramesPerSecond ?? 60))
+    link.preferredFrameRateRange = CAFrameRateRange(
+      minimum: min(60, maximum),
+      maximum: maximum,
+      preferred: maximum
+    )
+    interactiveDisplayMode = mode
+    displayLink = link
+    link.add(to: .main, forMode: .common)
+  }
+
+  @objc private func stepDisplayLink(_ link: CADisplayLink) {
+    guard interactiveDisplayMode == .inertia else {
+      applyPendingDragOffset()
+      return
+    }
     if lastDisplayTimestamp == 0 {
       lastDisplayTimestamp = link.timestamp
       return
     }
-    let elapsed = min(0.05, max(0, link.timestamp - lastDisplayTimestamp))
+    let elapsed = MarqueeMath.clampedFrameElapsed(
+      elapsed: link.timestamp - lastDisplayTimestamp,
+      frameInterval: link.targetTimestamp - link.timestamp
+    )
     lastDisplayTimestamp = link.timestamp
     if isBlendingToAuto {
       blendElapsed = min(autoBlendDuration, blendElapsed + elapsed)
@@ -533,6 +602,8 @@ private enum MarqueeState: String {
   private func stopDisplayLink() {
     displayLink?.invalidate()
     displayLink = nil
+    interactiveDisplayMode = nil
+    pendingDragOffset = nil
     lastDisplayTimestamp = 0
     inertiaVelocity = 0
     isBlendingToAuto = false
@@ -627,6 +698,13 @@ private enum MarqueeState: String {
   }
 
   var testingContentWidth: CGFloat { configuration.contentWidth }
+  var testingHoldEnabled: Bool { holdGesture.isEnabled }
+  var testingHoldMinimumPressDuration: TimeInterval { holdGesture.minimumPressDuration }
+  var testingHoldCancelsTouchesInView: Bool { holdGesture.cancelsTouchesInView }
+  var testingDisplayLinkPreferredFrameRate: Float? {
+    displayLink?.preferredFrameRateRange.preferred
+  }
+  var testingHasDisplayLink: Bool { displayLink != nil }
   var testingState: String? { lastState?.rawValue }
   var testingHasAutoAnimation: Bool {
     contentView?.layer.animation(forKey: animationKey) != nil
@@ -642,6 +720,12 @@ private enum MarqueeState: String {
     }
   }
   func testingBeginInertia(_ velocity: CGFloat) { beginInertia(velocity: velocity) }
+  func testingBeginDrag() { beginDrag() }
+  func testingQueueDrag(translation: CGFloat) { queueDrag(translation: translation) }
+  func testingStepDrag() { applyPendingDragOffset() }
+  func testingEndDrag(translation: CGFloat, velocity: CGFloat) {
+    endDrag(translation: translation, velocity: velocity)
+  }
   func testingSetOffset(_ offset: CGFloat) {
     contentView?.layer.removeAnimation(forKey: animationKey)
     setContentOffset(offset)

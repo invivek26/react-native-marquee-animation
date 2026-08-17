@@ -10,8 +10,10 @@ export const BENCHMARK_SCENARIOS = [
 ] as const;
 
 export const STRESS_COUNTS = [1, 10, 30, 100] as const;
+export const BENCHMARK_SPEEDS = [25, 50, 100] as const;
 
 export type BenchmarkScenario = (typeof BENCHMARK_SCENARIOS)[number];
+export type BenchmarkSpeed = (typeof BENCHMARK_SPEEDS)[number];
 export type StressCount = (typeof STRESS_COUNTS)[number];
 
 export type BenchmarkRoute = Readonly<{
@@ -19,6 +21,7 @@ export type BenchmarkRoute = Readonly<{
   durationSeconds: number;
   scenario: BenchmarkScenario;
   sparklines: boolean;
+  speed: BenchmarkSpeed;
 }>;
 
 export const DEFAULT_BENCHMARK_ROUTE: BenchmarkRoute = {
@@ -26,6 +29,7 @@ export const DEFAULT_BENCHMARK_ROUTE: BenchmarkRoute = {
   durationSeconds: 20,
   scenario: 'active',
   sparklines: true,
+  speed: 25,
 };
 
 const isBenchmarkScenario = (
@@ -46,6 +50,14 @@ const resolveDurationSeconds = (value: string | undefined): number => {
   }
 
   return Math.min(Math.round(numericValue), 300);
+};
+
+const resolveSpeed = (value: string | undefined): BenchmarkSpeed => {
+  const numericValue = Number(value);
+  return (
+    BENCHMARK_SPEEDS.find((candidate) => candidate === numericValue) ??
+    DEFAULT_BENCHMARK_ROUTE.speed
+  );
 };
 
 const resolveQueryValue = (
@@ -76,5 +88,6 @@ export const parseBenchmarkRoute = (url: string): BenchmarkRoute | null => {
     ),
     scenario,
     sparklines: resolveQueryValue(parsed.queryParams?.sparklines) !== '0',
+    speed: resolveSpeed(resolveQueryValue(parsed.queryParams?.speed)),
   };
 };

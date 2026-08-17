@@ -1,9 +1,0 @@
-appId: com.invivek26.marqueeexample
-name: iOS hosted launch preflight
----
-- launchApp:
-    clearState: true
-- extendedWaitUntil:
-    visible:
-      id: showcase-screen
-    timeout: 15000

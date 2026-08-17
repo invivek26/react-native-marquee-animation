@@ -7,10 +7,12 @@ name: iOS 100-view marquee stress
     visible:
       id: showcase-screen
     timeout: 15000
-- openLink: marquee-example://benchmark?scenario=stress&count=100&durationSeconds=8
+- scrollUntilVisible:
+    element:
+      id: open-stress-lab-button
+    direction: DOWN
 - tapOn:
-    text: Open
-    optional: true
+    id: open-stress-lab-button
 - extendedWaitUntil:
     visible:
       id: benchmark-screen
