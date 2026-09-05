@@ -1,11 +1,18 @@
 # React Native Marquee
 
+[![npm version](https://img.shields.io/npm/v/react-native-marquee-animation.svg)](https://www.npmjs.com/package/react-native-marquee-animation)
+[![npm downloads](https://img.shields.io/npm/dm/react-native-marquee-animation.svg)](https://www.npmjs.com/package/react-native-marquee-animation)
+[![CI](https://github.com/invivek26/react-native-marquee-animation/actions/workflows/ci.yml/badge.svg)](https://github.com/invivek26/react-native-marquee-animation/actions/workflows/ci.yml)
+[![license](https://img.shields.io/npm/l/react-native-marquee-animation.svg)](LICENSE)
+
 A production-grade generic marquee for React Native's New Architecture. Render
 ordinary React Native text, images, icons, badges, charts, and composed views
 once; native iOS and Android code repeats the visual strip and owns all motion.
 
 There is no per-frame JavaScript, duplicated React state, or list
 virtualization.
+
+Explore the interactive web interpretation at [viveks.app/open-source](https://viveks.app/open-source).
 
 ## Demo
 
@@ -178,3 +185,5 @@ Release presentation captures. See [example/CAPTURE.md](example/CAPTURE.md).
 ## License
 
 [MIT](LICENSE)
+
+Maintained by [Vivek Indlebele Narasimha Prasad](https://viveks.app).
