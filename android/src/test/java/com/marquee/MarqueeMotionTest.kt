@@ -2,10 +2,43 @@ package com.marquee
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MarqueeMotionTest {
+  @Test
+  fun contentPressMapsEveryCopyToOneContentCoordinate() {
+    val press = { touchX: Double, contentLeft: Double ->
+      contentPressX(touchX, contentLeft, contentWidth = 100.0, period = 120.0, repeats = true)
+    }
+
+    assertEquals(30.0, press(30.0, 0.0)!!, 0.0001)
+    assertEquals(30.0, press(150.0, 0.0)!!, 0.0001)
+    assertEquals(30.0, press(-90.0, 0.0)!!, 0.0001)
+    assertEquals(0.0, press(30.0, -2_490.0)!!, 0.0001)
+    assertEquals(20.0, press(30.0, 1_210.0)!!, 0.0001)
+  }
+
+  @Test
+  fun contentPressInSpacingGapIsIgnored() {
+    assertNull(contentPressX(110.0, 0.0, contentWidth = 100.0, period = 120.0, repeats = true))
+    assertNull(contentPressX(-15.0, 0.0, contentWidth = 100.0, period = 120.0, repeats = true))
+    assertNull(contentPressX(10.0, 0.0, contentWidth = 100.0, period = 0.0, repeats = true))
+  }
+
+  @Test
+  fun staticContentPressHonorsAlignmentOffsetAndBounds() {
+    val press = { touchX: Double ->
+      contentPressX(touchX, contentLeft = 110.0, contentWidth = 100.0, period = 132.0, repeats = false)
+    }
+
+    assertEquals(50.0, press(160.0)!!, 0.0001)
+    assertEquals(0.0, press(110.0)!!, 0.0001)
+    assertNull(press(100.0))
+    assertNull(press(210.0))
+  }
+
   @Test
   fun missedFrameUsesVisualContinuityLimitInsteadOfWallClockCatchUp() {
     val motion = MarqueeMotion()

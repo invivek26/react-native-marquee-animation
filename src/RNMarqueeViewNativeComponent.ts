@@ -10,6 +10,10 @@ type NativeContentLayoutEvent = Readonly<{
   containerWidth: CodegenTypes.Float;
 }>;
 
+type NativeContentPressEvent = Readonly<{
+  x: CodegenTypes.Float;
+}>;
+
 export interface NativeMarqueeViewProps extends ViewProps {
   active: boolean;
   reduceMotion: boolean;
@@ -22,9 +26,11 @@ export interface NativeMarqueeViewProps extends ViewProps {
   maxFlingVelocity: CodegenTypes.Float;
   deceleration: CodegenTypes.Float;
   pauseOnPress: boolean;
+  contentPressEnabled: boolean;
   resumeDelayMs: CodegenTypes.Double;
   onAnimationStateChange?: CodegenTypes.DirectEventHandler<NativeAnimationStateEvent>;
   onContentLayout?: CodegenTypes.DirectEventHandler<NativeContentLayoutEvent>;
+  onContentPress?: CodegenTypes.DirectEventHandler<NativeContentPressEvent>;
 }
 
 export default codegenNativeComponent<NativeMarqueeViewProps>(

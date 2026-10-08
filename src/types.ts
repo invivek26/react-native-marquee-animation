@@ -17,6 +17,11 @@ export type MarqueeContentLayoutEvent = Readonly<{
   contentWidth: number;
 }>;
 
+/** `x` is in the content container's own coordinates for one copy: `[0, contentWidth)`. */
+export type MarqueeContentPressEvent = Readonly<{
+  x: number;
+}>;
+
 export type MarqueeInteraction = Readonly<{
   maxFlingVelocity?: number;
   /** Unitless velocity retention per millisecond, greater than 0 and below 1. */
@@ -37,7 +42,7 @@ type InheritedViewProps = Omit<
 
 export type MarqueeProps = InheritedViewProps &
   Readonly<{
-    /** One noninteractive visual strip. React state is mounted exactly once. */
+    /** One visual strip. React state is mounted exactly once; descendants receive no touches. */
     children: ReactNode;
     /** A single semantic description for all visually repeated content. */
     accessibilityLabel: string;
@@ -49,6 +54,8 @@ export type MarqueeProps = InheritedViewProps &
     interaction?: MarqueeInteraction;
     onAnimationStateChange?: (event: MarqueeAnimationStateEvent) => void;
     onContentLayout?: (event: MarqueeContentLayoutEvent) => void;
+    /** A tap on any visual copy. Taps in the spacing gap or outside static content do not fire. */
+    onContentPress?: (event: MarqueeContentPressEvent) => void;
     reduceMotion?: MarqueeReduceMotion;
     shortContentMode?: MarqueeShortContentMode;
     /** Empty distance between the end of one visual copy and the next. */

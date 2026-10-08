@@ -3,6 +3,24 @@ package com.marquee
 import kotlin.math.abs
 import kotlin.math.pow
 
+/**
+ * Maps a viewport x to one copy's content coordinates. Repeated copies sit at whole
+ * periods from [contentLeft]; null means the spacing gap or outside static content.
+ */
+internal fun contentPressX(
+  touchX: Double,
+  contentLeft: Double,
+  contentWidth: Double,
+  period: Double,
+  repeats: Boolean,
+): Double? {
+  if (!touchX.isFinite() || !contentLeft.isFinite() || contentWidth <= 0.0) return null
+  if (repeats && period <= 0.0) return null
+  val offset = touchX - contentLeft
+  val x = if (repeats) ((offset % period) + period) % period else offset
+  return x.takeIf { it >= 0.0 && it < contentWidth }
+}
+
 internal class MarqueeMotion {
   var phasePx: Double = 0.0
     private set

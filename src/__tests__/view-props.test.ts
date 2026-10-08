@@ -11,6 +11,7 @@ describe('getViewProps', () => {
       children: null,
       contentContainerStyle: { gap: 8 },
       nativeID: 'marquee',
+      onContentPress: () => undefined,
       spacing: 24,
       speed: 30,
       testID: 'ticker',

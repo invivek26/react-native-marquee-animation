@@ -115,12 +115,53 @@ Supported content includes normal layer/display-list-backed React Native views:
 - custom charts that render into the ordinary React Native view hierarchy;
 - child state, asynchronous image loading, and dynamic value changes.
 
-Marquee children are deliberately noninteractive. The host owns horizontal
-pan, hold, and fling gestures, and repeated pixels are not additional React
-views. Nested `Pressable`, `TextInput`, map, video, camera, `SurfaceView`,
-`TextureView`, Metal, and other external rendering surfaces are outside the
-contract. Use a separate typed interaction layer when individual repeated
-items must be clickable.
+Marquee children receive no touches. The host owns horizontal pan, hold, and
+fling gestures, and repeated pixels are not additional React views. Nested
+`Pressable`, `TextInput`, map, video, camera, `SurfaceView`, `TextureView`,
+Metal, and other external rendering surfaces are outside the contract.
+
+To make items tappable, pass `onContentPress`. Native code maps a tap on any
+visual copy back to `x` in the content container's own coordinates,
+`[0, contentWidth)`, so the same pixel reports the same `x` on both platforms
+regardless of copy, direction, phase, drag offset, or static alignment. Taps in
+the `spacing` gap or outside static content report nothing. Hit-test your own
+items with their `onLayout` ranges:
+
+```tsx
+const ranges = useRef(new Map<string, { start: number; end: number }>());
+
+<Marquee
+  accessibilityLabel="Watchlist"
+  onContentPress={({ x }) => {
+    for (const [id, range] of ranges.current) {
+      if (x >= range.start && x < range.end) return openChart(id);
+    }
+  }}
+>
+  {stocks.map((stock) => (
+    <StockPill
+      key={stock.id}
+      onLayout={({ nativeEvent: { layout } }) =>
+        ranges.current.set(stock.id, {
+          start: layout.x,
+          end: layout.x + layout.width,
+        })
+      }
+      stock={stock}
+    />
+  ))}
+</Marquee>;
+```
+
+A tap is a touch down and up that moves less than the platform touch slop
+without starting a drag; drags, flings, cancellations, and parent scrolls never
+fire. The position is sampled at touch-down, so moving content
+(`pauseOnPress: false`) reports what was under the finger when it landed.
+Tapping does not interrupt automatic motion. Without `onContentPress`, native
+touch handling is unchanged and touches outside the drag area still reach
+native parents. The strip remains one accessible
+element; provide an accessible alternative if individual items matter to
+assistive technology users.
 
 ## Main props
 
@@ -134,6 +175,7 @@ items must be clickable.
 | `shortContentMode`      | `static` | Static content or repeated short content     |
 | `contentAlignment`      | `start`  | Alignment while short content is stationary  |
 | `contentContainerStyle` | —        | Style for the one horizontal content wrapper |
+| `onContentPress`        | —        | Tap position `{ x }` in content coordinates  |
 | `reduceMotion`          | `system` | `system`, `always`, or `never`               |
 
 ## Native architecture

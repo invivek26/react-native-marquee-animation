@@ -11,6 +11,62 @@ final class MarqueeRendererTests: XCTestCase {
     XCTAssertFalse(renderer.testingHoldCancelsTouchesInView)
   }
 
+  func testContentPressRecognizerNeverCancelsTouches() {
+    let renderer = MarqueeRenderer(frame: CGRect(x: 0, y: 0, width: 200, height: 64))
+
+    XCTAssertFalse(renderer.testingTapCancelsTouchesInView)
+  }
+
+  func testContentPressRecognizerFollowsContentPressEnabled() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    XCTAssertFalse(renderer.testingTapEnabled)
+    renderer.applyConfiguration(configuration(contentWidth: 600))
+    XCTAssertFalse(renderer.testingTapEnabled)
+
+    let enabled = configuration(contentWidth: 600)
+    enabled.contentPressEnabled = true
+    renderer.applyConfiguration(enabled)
+    XCTAssertTrue(renderer.testingTapEnabled)
+
+    renderer.resetForReuse()
+    XCTAssertFalse(renderer.testingTapEnabled)
+  }
+
+  func testLeftwardContentPressFollowsPhysicalOffsetAcrossCopies() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    renderer.applyConfiguration(configuration(contentWidth: 600))
+    renderer.testingSetOffset(-590)
+
+    XCTAssertEqual(try XCTUnwrap(renderer.testingContentPressX(atViewportX: 5)), 595, accuracy: 0.5)
+    XCTAssertNil(renderer.testingContentPressX(atViewportX: 20))
+    XCTAssertEqual(try XCTUnwrap(renderer.testingContentPressX(atViewportX: 50)), 8, accuracy: 0.5)
+    renderer.resetForReuse()
+  }
+
+  func testRightwardContentPressMatchesVisibleCopy() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    let config = configuration(contentWidth: 600)
+    config.direction = "right"
+    renderer.applyConfiguration(config)
+    renderer.testingSetOffset(100)
+
+    XCTAssertEqual(try XCTUnwrap(renderer.testingContentPressX(atViewportX: 150)), 50, accuracy: 0.5)
+    XCTAssertNil(renderer.testingContentPressX(atViewportX: 80))
+    XCTAssertEqual(try XCTUnwrap(renderer.testingContentPressX(atViewportX: 50)), 582, accuracy: 0.5)
+    renderer.resetForReuse()
+  }
+
+  func testStaticContentPressUsesAlignmentOffset() {
+    let (_, renderer) = attachedRenderer(width: 320, contentWidth: 100)
+    let config = configuration(contentWidth: 100)
+    config.contentAlignment = "center"
+    renderer.applyConfiguration(config)
+
+    XCTAssertEqual(try XCTUnwrap(renderer.testingContentPressX(atViewportX: 160)), 50, accuracy: 0.5)
+    XCTAssertNil(renderer.testingContentPressX(atViewportX: 100))
+    XCTAssertNil(renderer.testingContentPressX(atViewportX: 215))
+  }
+
   func testPauseOnPressFalseDisablesStationaryPressRecognizer() {
     let (_, renderer) = attachedRenderer(width: 200)
     let config = configuration(contentWidth: 600)

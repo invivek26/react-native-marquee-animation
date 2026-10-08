@@ -22,8 +22,13 @@ accessibility nodes. Instead, one logical tree is rendered repeatedly:
   hardware display lists rather than mounting duplicate views.
 
 The consequence is intentional: visual replicas are not independent hit-test
-or accessibility targets. Content is noninteractive and the marquee host owns
-gestures.
+or accessibility targets. Content receives no touches and the marquee host owns
+gestures. For item taps, the host maps a tap back to one copy's content
+coordinate, `positiveModulo(touchX - contentLeft, contentWidth + spacing)`
+while repeating or `touchX - contentLeft` while static, where `contentLeft` is
+the visual left edge of the primary copy at touch-down. Results at or beyond
+`contentWidth` (the spacing gap or outside static content) are dropped; the
+consumer hit-tests its own item layout against the reported `x`.
 
 ## Position and updates
 
@@ -45,6 +50,8 @@ single Fabric child directly into `MarqueeRenderer`. The Swift renderer is
 backed by `CAReplicatorLayer`; automatic motion is an infinite linear transform
 animation. A screen-rate-aware `CADisplayLink` coalesces drag updates and drives
 gesture inertia plus the short velocity blend back to compositor-driven motion.
+A tap recognizer that requires the pan to fail samples the content position in
+its touch-down delegate callback from the presentation offset.
 
 ## Android
 
@@ -56,6 +63,10 @@ phase from monotonic time with no per-frame allocations or JavaScript work.
 Elapsed motion is capped to approximately one current display interval so a
 missed callback reads as a brief hold instead of a catch-up jump. API 35+
 requests the high frame-rate category only while frame callbacks are active.
+When `onContentPress` is set, `onTouchEvent` also tracks taps anywhere content
+is drawn, including static content and the edge insets where drags are not
+claimed, and samples the phase at `ACTION_DOWN`. Without it, touch handling is
+unchanged.
 
 ## Unsupported surfaces
 
@@ -63,7 +74,7 @@ Ordinary React Native views, images, and composed drawing are supported.
 External surfaces such as video, maps, cameras, `SurfaceView`, `TextureView`,
 and Metal-backed content are not guaranteed to replay through layer/display
 list replication. Nested interactive controls are also unsupported because a
-visual replica is not another logical view.
+visual replica is not another logical view; use `onContentPress` instead.
 
 ## Lifecycle and accessibility
 
