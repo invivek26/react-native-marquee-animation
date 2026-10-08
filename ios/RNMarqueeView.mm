@@ -52,6 +52,7 @@ using namespace facebook::react;
   configuration.maxFlingVelocity = newProps.maxFlingVelocity;
   configuration.deceleration = newProps.deceleration;
   configuration.pauseOnPress = newProps.pauseOnPress;
+  configuration.contentPressEnabled = newProps.contentPressEnabled;
   configuration.resumeDelay = MAX(0, newProps.resumeDelayMs / 1000.0);
   _pendingConfiguration = configuration;
   [super updateProps:props oldProps:oldProps];
@@ -113,6 +114,15 @@ using namespace facebook::react;
       .contentWidth = static_cast<Float>(contentWidth),
       .containerWidth = static_cast<Float>(containerWidth),
   });
+}
+
+- (void)marqueeRenderer:(MarqueeRenderer *)renderer didPressContentAt:(CGFloat)x
+{
+  if (renderer != _renderer || !_eventEmitter) {
+    return;
+  }
+  auto eventEmitter = std::static_pointer_cast<const RNMarqueeViewEventEmitter>(_eventEmitter);
+  eventEmitter->onContentPress({.x = static_cast<Float>(x)});
 }
 
 @end

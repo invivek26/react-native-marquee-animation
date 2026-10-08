@@ -23,6 +23,7 @@ internal data class MarqueeProps(
   var maxFlingVelocity: Float = 3200f,
   var deceleration: Float = 0.9985f,
   var pauseOnPress: Boolean = true,
+  var contentPressEnabled: Boolean = false,
   var resumeDelayMs: Double = 0.0,
 )
 

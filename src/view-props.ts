@@ -11,6 +11,7 @@ const COMPONENT_PROP_KEYS = new Set([
   'interaction',
   'onAnimationStateChange',
   'onContentLayout',
+  'onContentPress',
   'reduceMotion',
   'shortContentMode',
   'spacing',

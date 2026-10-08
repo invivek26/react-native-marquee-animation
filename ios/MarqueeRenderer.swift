@@ -8,6 +8,7 @@ import UIKit
     didLayoutContentWidth contentWidth: CGFloat,
     containerWidth: CGFloat
   )
+  func marqueeRenderer(_ renderer: MarqueeRenderer, didPressContentAt x: CGFloat)
 }
 
 @objcMembers public final class MarqueeConfiguration: NSObject {
@@ -22,6 +23,7 @@ import UIKit
   public var maxFlingVelocity: CGFloat = 3_200
   public var deceleration: CGFloat = 0.9985
   public var pauseOnPress = true
+  public var contentPressEnabled = false
   public var resumeDelay: TimeInterval = 0
 }
 
@@ -61,6 +63,25 @@ enum MarqueeMath {
     }
     return abs(velocity.x) >= 20 && abs(velocity.x) > abs(velocity.y) * 1.15
   }
+
+  /// Maps a viewport x to one copy's content coordinates. Replicas sit at whole
+  /// periods from `contentLeft`; `nil` means the spacing gap or outside static content.
+  static func contentPressX(
+    touchX: CGFloat,
+    contentLeft: CGFloat,
+    contentWidth: CGFloat,
+    period: CGFloat,
+    repeats: Bool
+  ) -> CGFloat? {
+    guard touchX.isFinite, contentLeft.isFinite, contentWidth > 0,
+      !repeats || period > 0 else {
+      return nil
+    }
+    let x = repeats
+      ? positiveModulo(touchX - contentLeft, modulus: period)
+      : touchX - contentLeft
+    return x >= 0 && x < contentWidth ? x : nil
+  }
 }
 
 private enum MarqueeState: String {
@@ -89,6 +110,8 @@ private enum InteractiveDisplayMode {
   private var isHolding = false
   private var isDragging = false
   private var panStartOffset: CGFloat = 0
+  private var pressDownLocation: CGPoint = .zero
+  private var pressContentX: CGFloat?
   private var pendingDragOffset: CGFloat?
   private var displayLink: CADisplayLink?
   private var interactiveDisplayMode: InteractiveDisplayMode?
@@ -113,6 +136,7 @@ private enum InteractiveDisplayMode {
     target: self,
     action: #selector(handleHold(_:))
   )
+  private lazy var tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
 
   public override init(frame: CGRect) {
     super.init(frame: frame)
@@ -147,6 +171,7 @@ private enum InteractiveDisplayMode {
 
     configuration = value
     holdGesture.isEnabled = value.pauseOnPress
+    tapGesture.isEnabled = value.contentPressEnabled
     if geometryChanged {
       freezeMotion()
       configureReplication(preservingOffset: oldOffset)
@@ -170,6 +195,8 @@ private enum InteractiveDisplayMode {
     sourceBaseX = 0
     isHolding = false
     isDragging = false
+    pressContentX = nil
+    tapGesture.isEnabled = false
     lastState = nil
     lastLayoutWidth = -1
     lastContainerWidth = -1
@@ -247,6 +274,17 @@ private enum InteractiveDisplayMode {
     gestureRecognizer === holdGesture || otherGestureRecognizer === holdGesture
   }
 
+  public func gestureRecognizer(
+    _ gestureRecognizer: UIGestureRecognizer,
+    shouldReceive touch: UITouch
+  ) -> Bool {
+    if gestureRecognizer === tapGesture {
+      pressDownLocation = touch.location(in: self)
+      pressContentX = contentPressX(atViewportX: pressDownLocation.x)
+    }
+    return true
+  }
+
   public override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     guard gestureRecognizer === panGesture else { return true }
     let velocity = panGesture.velocity(in: self)
@@ -291,8 +329,13 @@ private enum InteractiveDisplayMode {
     holdGesture.delegate = self
     holdGesture.minimumPressDuration = 0
     holdGesture.cancelsTouchesInView = false
+    tapGesture.delegate = self
+    tapGesture.cancelsTouchesInView = false
+    tapGesture.isEnabled = false
+    tapGesture.require(toFail: panGesture)
     addGestureRecognizer(panGesture)
     addGestureRecognizer(holdGesture)
+    addGestureRecognizer(tapGesture)
     registerNotifications()
   }
 
@@ -380,6 +423,18 @@ private enum InteractiveDisplayMode {
     return directionSign * MarqueeMath.positiveModulo(
       directionSign * (transform.m41 - sourceBaseX),
       modulus: period
+    )
+  }
+
+  private func contentPressX(atViewportX x: CGFloat) -> CGFloat? {
+    guard let layer = contentView?.layer else { return nil }
+    let layoutLeft = layer.position.x - layer.bounds.width * layer.anchorPoint.x
+    return MarqueeMath.contentPressX(
+      touchX: x,
+      contentLeft: layoutLeft + sourceBaseX + currentPhysicalOffset(),
+      contentWidth: configuration.contentWidth,
+      period: period,
+      repeats: canScrollGeometry
     )
   }
 
@@ -471,6 +526,17 @@ private enum InteractiveDisplayMode {
     default:
       break
     }
+  }
+
+  // Sampled at touch-down so content that keeps moving (pauseOnPress false) reports what was touched.
+  @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+    let location = gesture.location(in: self)
+    guard gesture.state == .ended, !isDragging,
+      hypot(location.x - pressDownLocation.x, location.y - pressDownLocation.y) < tapSlop,
+      let x = pressContentX else {
+      return
+    }
+    delegate?.marqueeRenderer(self, didPressContentAt: x)
   }
 
   @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
@@ -701,6 +767,9 @@ private enum InteractiveDisplayMode {
   var testingHoldEnabled: Bool { holdGesture.isEnabled }
   var testingHoldMinimumPressDuration: TimeInterval { holdGesture.minimumPressDuration }
   var testingHoldCancelsTouchesInView: Bool { holdGesture.cancelsTouchesInView }
+  var testingTapCancelsTouchesInView: Bool { tapGesture.cancelsTouchesInView }
+  var testingTapEnabled: Bool { tapGesture.isEnabled }
+  func testingContentPressX(atViewportX x: CGFloat) -> CGFloat? { contentPressX(atViewportX: x) }
   var testingDisplayLinkPreferredFrameRate: Float? {
     displayLink?.preferredFrameRateRange.preferred
   }
@@ -732,5 +801,6 @@ private enum InteractiveDisplayMode {
   }
 
   private let autoBlendDuration: CFTimeInterval = 0.35
+  private let tapSlop: CGFloat = 10
   private let animationKey = "marquee.auto"
 }

@@ -6,8 +6,13 @@ import { getViewProps } from './view-props';
 
 export const Marquee = forwardRef<ComponentRef<typeof View>, MarqueeProps>(
   (props, ref) => {
-    const { accessibilityLabel, children, contentContainerStyle, style } =
-      props;
+    const {
+      accessibilityLabel,
+      children,
+      contentContainerStyle,
+      onContentPress,
+      style,
+    } = props;
     const viewProps = getViewProps(props);
 
     return (
@@ -22,7 +27,11 @@ export const Marquee = forwardRef<ComponentRef<typeof View>, MarqueeProps>(
         <View
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
-          pointerEvents="none"
+          onResponderRelease={(event) =>
+            onContentPress?.({ x: event.nativeEvent.locationX })
+          }
+          onStartShouldSetResponder={() => onContentPress !== undefined}
+          pointerEvents={onContentPress ? 'box-only' : 'none'}
           style={contentContainerStyle}
         >
           {children}

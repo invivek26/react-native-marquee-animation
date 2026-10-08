@@ -10,10 +10,13 @@ state mapping, forwarded view props, and the one-child public contract.
 ### Native unit tests
 
 Both platforms test modulo/wrap math, phase rebasing, velocity, same-width and
-width-changing content measurements, Reduce Motion, and recycle cleanup. iOS
+width-changing content measurements, Reduce Motion, recycle cleanup, and
+content-press mapping across copies, directions, the spacing gap, and static
+alignment. iOS
 tests exercise attached Core Animation without restart. Android device tests
 mount and draw an arbitrary child tree, enforce one mounted container, and
-cover vertical-scroll arbitration and edge-gesture exclusion.
+cover vertical-scroll arbitration, edge-gesture exclusion, and tap versus
+drag reporting.
 
 Android JVM tests run through the autolinked example Gradle project. iOS engine
 tests run from the root Swift Package XCTest harness on a simulator.

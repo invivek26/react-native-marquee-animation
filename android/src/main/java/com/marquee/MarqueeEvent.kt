@@ -38,7 +38,24 @@ internal class ContentLayoutEvent(
   }
 }
 
+internal class ContentPressEvent(
+  surfaceId: Int,
+  viewId: Int,
+  private val x: Float,
+) : Event<ContentPressEvent>(surfaceId, viewId) {
+  override fun getEventName(): String = EVENT_NAME
+
+  override fun getEventData(): WritableMap = Arguments.createMap().apply {
+    putDouble("x", x.toDouble())
+  }
+
+  companion object {
+    const val EVENT_NAME = "topContentPress"
+  }
+}
+
 internal interface MarqueeEventListener {
   fun onAnimationStateChange(state: MotionState)
   fun onContentLayout(contentWidth: Float, containerWidth: Float)
+  fun onContentPress(xPx: Float)
 }

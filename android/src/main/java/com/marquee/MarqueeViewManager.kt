@@ -40,6 +40,12 @@ class MarqueeViewManager : ViewGroupManager<MarqueeView>(),
           ),
         )
       }
+
+      override fun onContentPress(xPx: Float) {
+        dispatcher?.dispatchEvent(
+          ContentPressEvent(surfaceId, view.id, PixelUtil.toDIPFromPixel(xPx)),
+        )
+      }
     })
   }
 
@@ -47,6 +53,7 @@ class MarqueeViewManager : ViewGroupManager<MarqueeView>(),
     (super.getExportedCustomDirectEventTypeConstants() ?: mutableMapOf()).apply {
       put(AnimationStateChangeEvent.EVENT_NAME, mapOf("registrationName" to "onAnimationStateChange"))
       put(ContentLayoutEvent.EVENT_NAME, mapOf("registrationName" to "onContentLayout"))
+      put(ContentPressEvent.EVENT_NAME, mapOf("registrationName" to "onContentPress"))
     }
 
   override fun onAfterUpdateTransaction(view: MarqueeView) {
@@ -112,6 +119,11 @@ class MarqueeViewManager : ViewGroupManager<MarqueeView>(),
   @ReactProp(name = "pauseOnPress")
   override fun setPauseOnPress(view: MarqueeView, value: Boolean) {
     view.pendingProps.pauseOnPress = value
+  }
+
+  @ReactProp(name = "contentPressEnabled")
+  override fun setContentPressEnabled(view: MarqueeView, value: Boolean) {
+    view.pendingProps.contentPressEnabled = value
   }
 
   @ReactProp(name = "resumeDelayMs")

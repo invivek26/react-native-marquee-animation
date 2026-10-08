@@ -29,6 +29,7 @@ type NativeAnimationStateEvent = NativeSyntheticEvent<
 type NativeContentLayoutEvent = NativeSyntheticEvent<
   Readonly<{ containerWidth: number; contentWidth: number }>
 >;
+type NativeContentPressEvent = NativeSyntheticEvent<Readonly<{ x: number }>>;
 
 const NATIVE_SHORT_CONTENT_MODES = {
   repeat: 'repeat',
@@ -49,6 +50,7 @@ export const Marquee = forwardRef<
     interaction,
     onAnimationStateChange,
     onContentLayout,
+    onContentPress,
     reduceMotion: reduceMotionPolicy = 'system',
     shortContentMode = 'static',
     spacing: spacingProp = 0,
@@ -92,6 +94,13 @@ export const Marquee = forwardRef<
     [onContentLayout]
   );
 
+  const handleContentPress = useCallback(
+    (event: NativeContentPressEvent) => {
+      onContentPress?.({ x: event.nativeEvent.x });
+    },
+    [onContentPress]
+  );
+
   return (
     <NativeMarqueeView
       {...viewProps}
@@ -101,6 +110,7 @@ export const Marquee = forwardRef<
       accessible
       active={active}
       contentAlignment={contentAlignment}
+      contentPressEnabled={onContentPress !== undefined}
       contentWidth={contentWidth}
       deceleration={resolvedInteraction.deceleration}
       direction={direction}
@@ -110,6 +120,7 @@ export const Marquee = forwardRef<
         onAnimationStateChange ? handleAnimationStateChange : undefined
       }
       onContentLayout={onContentLayout ? handleContentLayout : undefined}
+      onContentPress={onContentPress ? handleContentPress : undefined}
       pauseOnPress={resolvedInteraction.pauseOnPress}
       reduceMotion={reduceMotion}
       ref={ref}

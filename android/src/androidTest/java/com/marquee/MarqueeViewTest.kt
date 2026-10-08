@@ -104,10 +104,101 @@ class MarqueeViewTest {
     edgeDown.recycle()
   }
 
-  private fun overflowingView(): MarqueeView {
+  @Test
+  fun staticContentIgnoresTouchesWithoutContentPress() {
+    val view = staticView(contentPressEnabled = false)
+    val down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 160f, 20f, 0)
+    val up = MotionEvent.obtain(0, 16, MotionEvent.ACTION_UP, 160f, 20f, 0)
+
+    assertEquals(false, view.onTouchEvent(down))
+    assertEquals(false, view.onTouchEvent(up))
+    down.recycle()
+    up.recycle()
+  }
+
+  @Test
+  fun edgeTapIsTrackedButEdgeDragIsNotClaimedWithContentPress() {
+    val view = overflowingView(contentPressEnabled = true)
+    val presses = recordPresses(view)
+    val edgeDown = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 1f, 20f, 0)
+    val edgeMove = MotionEvent.obtain(0, 16, MotionEvent.ACTION_MOVE, 60f, 20f, 0)
+    val edgeUp = MotionEvent.obtain(0, 32, MotionEvent.ACTION_UP, 60f, 20f, 0)
+
+    assertEquals(true, view.onTouchEvent(edgeDown))
+    assertEquals(false, view.onTouchEvent(edgeMove))
+    view.onTouchEvent(edgeUp)
+
+    assertEquals(emptyList<Float>(), presses)
+    edgeDown.recycle()
+    edgeMove.recycle()
+    edgeUp.recycle()
+  }
+
+  @Test
+  fun tapReportsContentPositionAndDragDoesNot() {
+    val view = overflowingView(contentPressEnabled = true)
+    val presses = recordPresses(view)
+    val down = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 160f, 20f, 0)
+    val up = MotionEvent.obtain(0, 16, MotionEvent.ACTION_UP, 161f, 20f, 0)
+    val dragDown = MotionEvent.obtain(0, 32, MotionEvent.ACTION_DOWN, 160f, 20f, 0)
+    val dragMove = MotionEvent.obtain(0, 48, MotionEvent.ACTION_MOVE, 220f, 20f, 0)
+    val dragUp = MotionEvent.obtain(0, 64, MotionEvent.ACTION_UP, 220f, 20f, 0)
+
+    assertEquals(true, view.onTouchEvent(down))
+    view.onTouchEvent(up)
+    view.onTouchEvent(dragDown)
+    view.onTouchEvent(dragMove)
+    view.onTouchEvent(dragUp)
+
+    assertEquals(listOf(160f), presses)
+    listOf(down, up, dragDown, dragMove, dragUp).forEach { it.recycle() }
+  }
+
+  @Test
+  fun staticTapUsesAlignmentOffsetAndIgnoresOutsideContent() {
+    val view = staticView(contentPressEnabled = true)
+    val presses = recordPresses(view)
+    val inside = MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 160f, 20f, 0)
+    val insideUp = MotionEvent.obtain(0, 16, MotionEvent.ACTION_UP, 160f, 20f, 0)
+    val outside = MotionEvent.obtain(0, 32, MotionEvent.ACTION_DOWN, 20f, 20f, 0)
+
+    view.onTouchEvent(inside)
+    view.onTouchEvent(insideUp)
+
+    assertEquals(false, view.onTouchEvent(outside))
+    assertEquals(listOf(50f), presses)
+    listOf(inside, insideUp, outside).forEach { it.recycle() }
+  }
+
+  private fun recordPresses(view: MarqueeView): MutableList<Float> {
+    val presses = mutableListOf<Float>()
+    view.setEventListener(object : MarqueeEventListener {
+      override fun onAnimationStateChange(state: MotionState) = Unit
+      override fun onContentLayout(contentWidth: Float, containerWidth: Float) = Unit
+      override fun onContentPress(xPx: Float) {
+        presses.add(xPx)
+      }
+    })
+    return presses
+  }
+
+  private fun staticView(contentPressEnabled: Boolean): MarqueeView {
+    val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+    return MarqueeView(context).apply {
+      pendingProps.contentWidth = PixelUtil.toDIPFromPixel(100f)
+      pendingProps.contentAlignment = ContentAlignment.CENTER
+      pendingProps.contentPressEnabled = contentPressEnabled
+      commitProps()
+      measure(exactly(320), exactly(64))
+      layout(0, 0, 320, 64)
+    }
+  }
+
+  private fun overflowingView(contentPressEnabled: Boolean = false): MarqueeView {
     val context = ApplicationProvider.getApplicationContext<android.content.Context>()
     return MarqueeView(context).apply {
       pendingProps.contentWidth = 600f
+      pendingProps.contentPressEnabled = contentPressEnabled
       commitProps()
       measure(exactly(320), exactly(64))
       layout(0, 0, 320, 64)

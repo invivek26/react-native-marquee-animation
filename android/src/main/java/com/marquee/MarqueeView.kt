@@ -13,6 +13,7 @@ import android.view.ViewConfiguration
 import android.view.ViewGroup
 import com.facebook.react.uimanager.PixelUtil
 import kotlin.math.abs
+import kotlin.math.hypot
 
 class MarqueeView : ViewGroup, Choreographer.FrameCallback {
   constructor(context: Context) : super(context)
@@ -34,6 +35,8 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
   private var pointerDownY = 0f
   private var previousPointerX = 0f
   private var didPan = false
+  private var tracksMotionGesture = false
+  private var pressContentX: Double? = null
   private val resumeRunnable = Runnable { reconcileMotionState() }
 
   init {
@@ -63,6 +66,7 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
     stopFrames()
     velocityTracker?.recycle()
     velocityTracker = null
+    pressContentX = null
     pendingProps.copyFrom(MarqueeProps())
     committedProps = MarqueeProps()
     motion.configure(0.0, 0.0, preservePhase = false)
@@ -144,27 +148,35 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
     if (motion.isFrameDriven() && shouldScheduleMotion()) postFrame()
   }
 
+  // With onContentPress, taps are tracked everywhere content is drawn; drag, hold, and fling
+  // only inside the edge insets of moving content. The tap position is sampled at touch-down.
   override fun onTouchEvent(event: MotionEvent): Boolean {
-    if (!committedProps.active || committedProps.reduceMotion || !shouldRepeat()) return false
+    val tapsEnabled = committedProps.contentPressEnabled
+    if (!tapsEnabled && (!committedProps.active || committedProps.reduceMotion || !shouldRepeat())) return false
     when (event.actionMasked) {
       MotionEvent.ACTION_DOWN -> {
-        val edgeInset = PixelUtil.toPixelFromDIP(EDGE_GESTURE_INSET_DP)
-        if (event.x <= edgeInset || event.x >= width - edgeInset) return false
-        removeCallbacks(resumeRunnable)
-        velocityTracker?.recycle()
-        velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
+        pressContentX = if (tapsEnabled) contentPressXAt(event.x) else null
         pointerDownX = event.x
         pointerDownY = event.y
         previousPointerX = event.x
         didPan = false
+        val edgeInset = PixelUtil.toPixelFromDIP(EDGE_GESTURE_INSET_DP)
+        tracksMotionGesture = committedProps.active && !committedProps.reduceMotion && shouldRepeat() &&
+          event.x > edgeInset && event.x < width - edgeInset
+        if (!tracksMotionGesture) return pressContentX != null
+        removeCallbacks(resumeRunnable)
+        velocityTracker?.recycle()
+        velocityTracker = VelocityTracker.obtain().also { it.addMovement(event) }
         if (committedProps.pauseOnPress) motion.beginHold()
         reportMotionState()
         return true
       }
       MotionEvent.ACTION_MOVE -> {
-        velocityTracker?.addMovement(event)
         val totalDeltaX = event.x - pointerDownX
         val totalDeltaY = event.y - pointerDownY
+        if (hypot(totalDeltaX, totalDeltaY) >= touchSlop) pressContentX = null
+        if (!tracksMotionGesture) return pressContentX != null
+        velocityTracker?.addMovement(event)
         if (!didPan && abs(totalDeltaY) >= touchSlop &&
           abs(totalDeltaY) * PAN_DOMINANCE_RATIO > abs(totalDeltaX)) {
           finishGesture(0.0, canceled = true)
@@ -184,19 +196,26 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
         return true
       }
       MotionEvent.ACTION_UP -> {
-        velocityTracker?.addMovement(event)
-        velocityTracker?.computeCurrentVelocity(1000)
-        val velocity = if (didPan) velocityTracker?.xVelocity?.toDouble() ?: 0.0 else 0.0
-        finishGesture(velocity, canceled = false)
+        if (tracksMotionGesture) {
+          velocityTracker?.addMovement(event)
+          velocityTracker?.computeCurrentVelocity(1000)
+          val velocity = if (didPan) velocityTracker?.xVelocity?.toDouble() ?: 0.0 else 0.0
+          finishGesture(velocity, canceled = false)
+        }
+        val pressX = pressContentX.takeUnless { didPan }
+        pressContentX = null
+        if (pressX != null) eventListener?.onContentPress(pressX.toFloat())
         performClick()
         return true
       }
       MotionEvent.ACTION_CANCEL -> {
-        finishGesture(0.0, canceled = true)
+        pressContentX = null
+        if (tracksMotionGesture) finishGesture(0.0, canceled = true)
         return true
       }
       MotionEvent.ACTION_POINTER_DOWN -> {
-        finishGesture(0.0, canceled = true)
+        pressContentX = null
+        if (tracksMotionGesture) finishGesture(0.0, canceled = true)
         return false
       }
     }
@@ -277,6 +296,18 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
       postFrame()
     }
     reportMotionState()
+  }
+
+  private fun contentPressXAt(touchX: Float): Double? {
+    val contentWidth = contentWidthPx()
+    val repeats = shouldRepeat()
+    return contentPressX(
+      touchX = touchX.toDouble(),
+      contentLeft = if (repeats) paddingLeft - motion.phasePx else staticContentX(contentWidth).toDouble(),
+      contentWidth = contentWidth.toDouble(),
+      period = periodPx(),
+      repeats = repeats,
+    )
   }
 
   private fun contentWidthPx(): Float = PixelUtil.toPixelFromDIP(committedProps.contentWidth)
@@ -398,5 +429,6 @@ private fun MarqueeProps.copyFrom(other: MarqueeProps) {
   maxFlingVelocity = other.maxFlingVelocity
   deceleration = other.deceleration
   pauseOnPress = other.pauseOnPress
+  contentPressEnabled = other.contentPressEnabled
   resumeDelayMs = other.resumeDelayMs
 }

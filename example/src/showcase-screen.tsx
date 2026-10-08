@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -7,10 +7,14 @@ import {
   StyleSheet,
   Text,
   View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { Marquee } from 'react-native-marquee-animation';
+import {
+  Marquee,
+  type MarqueeContentPressEvent,
+} from 'react-native-marquee-animation';
 
 const SHOWCASE_INTERVAL_MS = 1_500;
 const HERO_CONTENT_CARD_WIDTH = 280;
@@ -109,17 +113,21 @@ const CapabilityCard = ({ children, caption, label }: CapabilityCardProps) => (
 type MarketPillProps = Readonly<{
   label: string;
   negative?: boolean;
+  onLayout: (event: LayoutChangeEvent) => void;
   symbol: string;
   value: string;
 }>;
 
+type ContentRange = Readonly<{ end: number; start: number }>;
+
 const MarketPill = ({
   label,
   negative = false,
+  onLayout,
   symbol,
   value,
 }: MarketPillProps) => (
-  <View style={styles.marketPill}>
+  <View onLayout={onLayout} style={styles.marketPill}>
     <View style={styles.marketCopy}>
       <Text style={styles.marketSymbol}>{symbol}</Text>
       <Text style={styles.marketLabel}>{label}</Text>
@@ -132,6 +140,20 @@ const MarketPill = ({
 
 export const ShowcaseScreen = ({ onOpenLab }: ShowcaseScreenProps) => {
   const [step, setStep] = useState(0);
+  const [tappedSymbol, setTappedSymbol] = useState<string | null>(null);
+  const marketRanges = useRef(new Map<string, ContentRange>());
+  const recordMarketRange = (symbol: string) => (event: LayoutChangeEvent) => {
+    const { width, x } = event.nativeEvent.layout;
+    marketRanges.current.set(symbol, { end: x + width, start: x });
+  };
+  const handleMarketPress = ({ x }: MarqueeContentPressEvent) => {
+    for (const [symbol, range] of marketRanges.current) {
+      if (x >= range.start && x < range.end) {
+        setTappedSymbol(symbol);
+        return;
+      }
+    }
+  };
   const marketValue = MARKET_VALUES[step] ?? MARKET_VALUES[0];
   const platformEngine =
     Platform.OS === 'ios' ? 'CORE ANIMATION · FABRIC' : 'DISPLAY LIST · FABRIC';
@@ -277,20 +299,34 @@ export const ShowcaseScreen = ({ onOpenLab }: ShowcaseScreenProps) => {
         <View style={styles.marketCard}>
           <View style={styles.cardHeadingRow}>
             <Text style={styles.label}>MARKET PULSE</Text>
-            <Text style={styles.marketMeta}>FINANCE · SAME GENERIC API</Text>
+            <Text style={styles.marketMeta} testID="market-tapped-symbol">
+              {tappedSymbol ? `TAPPED · ${tappedSymbol}` : 'TAP A SYMBOL'}
+            </Text>
           </View>
           <Marquee
             accessibilityLabel="Market pulse: S&P 500 up 0.82%, Nasdaq up 1.14%, and EUR USD down 0.24%"
             contentContainerStyle={styles.marketStrip}
+            onContentPress={handleMarketPress}
             spacing={12}
             speed={20}
             style={styles.marketMarquee}
           >
-            <MarketPill label="INDEX" symbol="S&P 500" value="+0.82%" />
-            <MarketPill label="TECH" symbol="NASDAQ" value="+1.14%" />
+            <MarketPill
+              label="INDEX"
+              onLayout={recordMarketRange('S&P 500')}
+              symbol="S&P 500"
+              value="+0.82%"
+            />
+            <MarketPill
+              label="TECH"
+              onLayout={recordMarketRange('NASDAQ')}
+              symbol="NASDAQ"
+              value="+1.14%"
+            />
             <MarketPill
               label="FOREX"
               negative
+              onLayout={recordMarketRange('EUR / USD')}
               symbol="EUR / USD"
               value="−0.24%"
             />

@@ -4,6 +4,7 @@ export type {
   MarqueeAnimationStateEvent,
   MarqueeContentAlignment,
   MarqueeContentLayoutEvent,
+  MarqueeContentPressEvent,
   MarqueeDirection,
   MarqueeInteraction,
   MarqueeProps,
