@@ -239,6 +239,8 @@ private enum InteractiveDisplayMode {
       freezeMotion()
       period = 0
       replicatorLayer.instanceCount = 1
+      // Fabric recycles the removed view; a leftover offset would shift whatever reuses it.
+      subview.layer.transform = CATransform3DIdentity
     }
     super.willRemoveSubview(subview)
   }

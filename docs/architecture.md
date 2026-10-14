@@ -84,4 +84,6 @@ the child container and every visual replica are hidden. Reduce Motion,
 animation work. A window-attached view cannot infer application-level
 visibility or occlusion, so `active` remains the authoritative control.
 Recycling clears callbacks, gestures, content measurements, and event listeners
-before Fabric reuses a native view.
+before Fabric reuses a native view. On iOS, Fabric also recycles the child
+container itself, so the host resets that container's transform when it is
+removed; otherwise the next view to reuse it would inherit the scroll offset.
