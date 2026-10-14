@@ -238,6 +238,18 @@ final class MarqueeRendererTests: XCTestCase {
     XCTAssertFalse(renderer.testingHasAutoAnimation)
   }
 
+  func testRemovedContentKeepsNoMarqueeTransform() {
+    let (_, renderer) = attachedRenderer(width: 200)
+    let child = try! XCTUnwrap(renderer.subviews.first)
+    renderer.applyConfiguration(configuration(contentWidth: 600))
+    renderer.testingSetOffset(-187)
+
+    child.removeFromSuperview()
+
+    XCTAssertTrue(CATransform3DIsIdentity(child.layer.transform))
+    XCTAssertNil(child.layer.animationKeys())
+  }
+
   private func attachedRenderer(
     width: CGFloat,
     contentWidth: CGFloat = 600
