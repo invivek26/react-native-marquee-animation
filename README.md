@@ -20,15 +20,15 @@ https://github.com/user-attachments/assets/9f4e1655-0f2c-468f-b0e4-25af40de5631
 
 ## Compatibility
 
-| Requirement  | Supported                                |
-| ------------ | ---------------------------------------- |
-| React Native | 0.85.x                                   |
-| React        | 19.2.x                                   |
-| Expo         | SDK 56 development and production builds |
-| iOS          | 17 and newer                             |
-| Android      | API 24 and newer                         |
-| Architecture | New Architecture (Fabric) only           |
-| Expo Go      | No                                       |
+| Requirement  | Supported                                      |
+| ------------ | ---------------------------------------------- |
+| React Native | 0.85.x to 0.88.x                               |
+| React        | 19.2.x and 19.3.x                              |
+| Expo         | SDK 56 to 58 development and production builds |
+| iOS          | 17 and newer                                   |
+| Android      | API 24 and newer                               |
+| Architecture | New Architecture (Fabric) only                 |
+| Expo Go      | No                                             |
 
 ## Installation
 
