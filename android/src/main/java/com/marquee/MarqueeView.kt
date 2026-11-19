@@ -11,6 +11,7 @@ import android.view.VelocityTracker
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import com.facebook.react.uimanager.PixelUtil
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -39,6 +40,13 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
   private var pressContentX: Double? = null
   private val resumeRunnable = Runnable { reconcileMotionState() }
 
+  // doFrame stops the loop while the view is scrolled fully out of view, and
+  // scrolling an ancestor changes no prop, layout or visibility. Restart the
+  // loop on the next scroll that could bring it back.
+  private val scrollChangedListener = ViewTreeObserver.OnScrollChangedListener {
+    if (motion.isFrameDriven() && shouldScheduleMotion()) postFrame()
+  }
+
   init {
     setWillNotDraw(false)
     clipChildren = false
@@ -46,6 +54,8 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
     isFocusable = false
     importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
   }
+
+  internal val testingPhasePx: Double get() = motion.phasePx
 
   internal fun setEventListener(listener: MarqueeEventListener?) {
     eventListener = listener
@@ -226,12 +236,14 @@ class MarqueeView : ViewGroup, Choreographer.FrameCallback {
 
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
+    viewTreeObserver.addOnScrollChangedListener(scrollChangedListener)
     attachedAndVisible = isShown
     reconcileMotionState()
   }
 
   override fun onDetachedFromWindow() {
     attachedAndVisible = false
+    viewTreeObserver.removeOnScrollChangedListener(scrollChangedListener)
     removeCallbacks(resumeRunnable)
     stopFrames()
     motion.pause()
