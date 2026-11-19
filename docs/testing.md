@@ -15,8 +15,9 @@ content-press mapping across copies, directions, the spacing gap, and static
 alignment. iOS
 tests exercise attached Core Animation without restart. Android device tests
 mount and draw an arbitrary child tree, enforce one mounted container, and
-cover vertical-scroll arbitration, edge-gesture exclusion, and tap versus
-drag reporting.
+cover vertical-scroll arbitration, edge-gesture exclusion, tap versus drag
+reporting, and motion that stops while a parent scrolls it out of view and
+resumes when it scrolls back.
 
 Android JVM tests run through the autolinked example Gradle project. iOS engine
 tests run from the root Swift Package XCTest harness on a simulator.

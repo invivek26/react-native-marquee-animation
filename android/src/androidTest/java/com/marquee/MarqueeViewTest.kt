@@ -6,11 +6,15 @@ import android.graphics.Color
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.facebook.react.uimanager.DisplayMetricsHolder
 import com.facebook.react.uimanager.PixelUtil
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Before
 import org.junit.Test
@@ -170,6 +174,59 @@ class MarqueeViewTest {
     listOf(inside, insideUp, outside).forEach { it.recycle() }
   }
 
+  @Test
+  fun motionStopsWhileScrolledOutAndResumesWhenScrolledBack() {
+    ActivityScenario.launch(MarqueeTestActivity::class.java).use { scenario ->
+      lateinit var scroll: ScrollView
+      lateinit var marquee: MarqueeView
+      scenario.onActivity { activity ->
+        marquee = MarqueeView(activity).apply {
+          addView(FrameLayout(activity))
+          pendingProps.contentWidth = 600f
+          pendingProps.speed = 100.0
+          commitProps()
+        }
+        val column = LinearLayout(activity).apply {
+          orientation = LinearLayout.VERTICAL
+          addView(marquee, LinearLayout.LayoutParams(320, 64))
+          addView(View(activity), LinearLayout.LayoutParams(320, 4000))
+        }
+        scroll = ScrollView(activity).apply { addView(column) }
+        activity.setContentView(scroll)
+      }
+
+      assertPhaseAdvances(scenario, marquee)
+
+      scenario.onActivity { scroll.scrollTo(0, 2000) }
+      Thread.sleep(SETTLE_MS)
+      val stoppedPhase = phaseOf(scenario, marquee)
+      Thread.sleep(SETTLE_MS)
+      assertEquals(stoppedPhase, phaseOf(scenario, marquee), 0.0)
+
+      scenario.onActivity { scroll.scrollTo(0, 0) }
+      assertPhaseAdvances(scenario, marquee)
+    }
+  }
+
+  private fun assertPhaseAdvances(
+    scenario: ActivityScenario<MarqueeTestActivity>,
+    marquee: MarqueeView,
+  ) {
+    Thread.sleep(SETTLE_MS)
+    val before = phaseOf(scenario, marquee)
+    Thread.sleep(SETTLE_MS)
+    assertNotEquals(before, phaseOf(scenario, marquee), 0.0)
+  }
+
+  private fun phaseOf(
+    scenario: ActivityScenario<MarqueeTestActivity>,
+    marquee: MarqueeView,
+  ): Double {
+    var phase = 0.0
+    scenario.onActivity { phase = marquee.testingPhasePx }
+    return phase
+  }
+
   private fun recordPresses(view: MarqueeView): MutableList<Float> {
     val presses = mutableListOf<Float>()
     view.setEventListener(object : MarqueeEventListener {
@@ -207,4 +264,8 @@ class MarqueeViewTest {
 
   private fun exactly(size: Int): Int =
     View.MeasureSpec.makeMeasureSpec(size, View.MeasureSpec.EXACTLY)
+
+  private companion object {
+    const val SETTLE_MS = 300L
+  }
 }
